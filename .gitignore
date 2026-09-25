@@ -1,0 +1,21 @@
+# Data (ignore contents, but keep folder structure via .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+data/custom_test/*
+!data/custom_test/.gitkeep
+
+# Virtual environments
+venv/
+.venv/
+
+# Python
+__pycache__/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Environment variables
+.env
