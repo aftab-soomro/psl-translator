@@ -4,7 +4,7 @@ Source: UAlpha40 (Mendeley, DOI: 10.17632/3pvnnckxyb.3)
 Paper: Sajid, Baloch & Javaid, Data in Brief, 2025, DOI: 10.1016/j.dib.2025.111342
 Authors: Sameena Javaid, Shahood Sajid, Yusra Khan Baloch (Dept. of Computer Science, Bahria University, Karachi)
 
-- 22,280 images total: 2,897 original + 19,383 augmented (36 static classes)
+- 22,280 images total: 2,896 original + 19,383 augmented (36 static classes)
 - 393 videos for 4 dynamic classes (2-Hay, Alifmad, Aray, Jeem) — out of project scope
 - Collected with 3 DSLR cameras + LED lighting, volunteers aged 20-45
 - Signs follow the FESF standard chart for Urdu Sign Language
