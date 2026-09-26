@@ -1,0 +1,10 @@
+   {
+     "files.watcherExclude": {
+       "**/data/raw/**": true,
+       "**/data/custom_test/**": true
+     },
+     "search.exclude": {
+       "**/data/raw/**": true,
+       "**/data/custom_test/**": true
+     }
+   }
