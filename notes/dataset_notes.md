@@ -127,3 +127,40 @@ No signs of overfitting.
 Ranking stays identical between accuracy and macro F1 -- confirms SVM's high
 accuracy is NOT just from majority classes; it performs well even on
 underrepresented classes like Tay.
+
+## Top confusing pairs (Step 85)
+
+1. Tuey <-> Daal: 12 total confusions (biggest error source)
+2. Ain <-> Ghain: 4 total confusions
+3. Zuad <-> Zuey: 2 total confusions
+
+Note: Ain/Ghain and Zuad/Zuey are letter pairs that are also phonetically
+similar/identical in spoken Urdu (Ain-Ghain are both guttural sounds; Zuad-Zuey
+are both pronounced as "z" in Urdu despite being distinct in Arabic). This
+suggests their PSL hand-signs may have been designed with visually related
+shapes, consistent with the model's confusion pattern.
+
+Our earlier prediction (Kaf/Tay, based on similar "closed fist" appearance in
+Step 46) did NOT turn out to be a major confusion pair -- a reminder that
+visual intuition from a few sample images doesn't always match what the
+trained model actually struggles with.
+
+## Weakest 5 classes by F1 (Step 86)
+
+| Letter | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| Tuey | 0.700 | 0.438 | 0.538 | 16 |
+| Daal | 0.591 | 0.813 | 0.684 | 16 |
+| Ain | 0.800 | 0.857 | 0.828 | 14 |
+| Ghain | 0.857 | 0.857 | 0.857 | 14 |
+| Tay | 1.000 | 0.750 | 0.857 | 12 |
+
+Consistent with Step 85: Tuey and Daal are confused with EACH OTHER (Tuey's
+low recall = Daal's low precision), confirming this is a genuine, mutual
+confusion pattern, not a coincidence.
+
+Interesting: despite having the fewest training images (43), Tay has PERFECT
+precision (100%) -- whenever the model predicts Tay, it's always correct. Its
+recall (75%) is lower, meaning some true Tay signs get missed and called
+something else, but the shape itself is distinctive enough not to be a major
+confusion source once detected.
