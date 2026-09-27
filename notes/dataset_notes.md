@@ -100,3 +100,30 @@ SVM (RBF kernel, C=100, gamma=0.01) chosen as best model:
 - Simpler than MLP (2 hyperparameters vs. multiple), lower overfitting risk
 - MLP is a close second (92.01%) and will be mentioned as a strong alternative
   in the report
+
+  ## Final test results (Step 81)
+
+Test set: 562 images, 36 classes, from 16-17 signers never seen in training.
+- Baseline: 2.85%
+- KNN: 88.26%
+- Random Forest: 91.46%
+- MLP: 93.77%
+- SVM (RBF): 95.02% <- best model
+
+All models score HIGHER on the held-out test set than in cross-validation,
+because final models were trained on 100% of train.csv vs ~80% per CV fold.
+No signs of overfitting.
+
+## Precision/Recall/F1 (Step 82)
+
+| Model | Accuracy | Precision | Recall | F1 (macro) |
+|---|---|---|---|---|
+| SVM (RBF) | 95.02% | 95.24% | 94.85% | 94.82% |
+| MLP | 93.77% | 93.96% | 93.58% | 93.61% |
+| Random Forest | 91.46% | 91.65% | 91.28% | 91.29% |
+| KNN | 88.26% | 88.59% | 88.11% | 88.10% |
+| Baseline | 2.85% | 0.08% | 2.78% | 0.15% |
+
+Ranking stays identical between accuracy and macro F1 -- confirms SVM's high
+accuracy is NOT just from majority classes; it performs well even on
+underrepresented classes like Tay.
