@@ -91,3 +91,12 @@ alag hai, jo darust karta hai k kam se kam kuch harf shape ke lihaaz se
 kaafi mukhtalif hain. In 2 dimensions me sirf X% variance capture hoti hai,
 is liye ye sirf ek jhalak hai — asal model 63 dimensions par kaam karega,
 jahan farq aur bhi saaf hoga.
+
+## Best model (Step 77)
+
+SVM (RBF kernel, C=100, gamma=0.01) chosen as best model:
+- Highest tuned CV accuracy: 92.19%
+- Largest improvement from tuning: +5.26 percentage points
+- Simpler than MLP (2 hyperparameters vs. multiple), lower overfitting risk
+- MLP is a close second (92.01%) and will be mentioned as a strong alternative
+  in the report

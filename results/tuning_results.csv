@@ -1,0 +1,5 @@
+Model,Default CV Accuracy,Tuned CV Accuracy,Best Hyperparameters,Improvement
+SVM (RBF),0.8693,0.9219,"{'model__C': 100, 'model__gamma': 0.01}",0.05260000000000009
+MLP,0.9136,0.9201,"{'model__hidden_layer_sizes': (100, 50), 'model__learning_rate_init': 0.001}",0.006500000000000061
+Random Forest,0.885,0.8868,"{'model__max_depth': 20, 'model__n_estimators': 300}",0.0018000000000000238
+KNN,0.8249,0.8277,{'model__n_neighbors': 3},0.0028000000000000247
