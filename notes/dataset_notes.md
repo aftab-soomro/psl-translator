@@ -164,3 +164,24 @@ precision (100%) -- whenever the model predicts Tay, it's always correct. Its
 recall (75%) is lower, meaning some true Tay signs get missed and called
 something else, but the shape itself is distinctive enough not to be a major
 confusion source once detected.
+
+## Error analysis (Step 92-93)
+
+8 diverse misclassifications reviewed. Two clear failure patterns:
+
+1. **Closed-fist occlusion** (3/8 errors: Alif, Nuun, Taay): when the hand
+   forms a closed fist with knuckles facing the camera, overlapping fingers
+   make individual joints hard to distinguish, leading to misclassification.
+   This is the SAME root cause identified in Step 40 for Tay's high landmark-
+   extraction failure rate -- here it shows up as prediction errors instead of
+   extraction failures.
+
+2. **Genuinely similar hand shapes** (4/8 errors: Ain/Ghain, Daal/Tuey,
+   Ray/Zaal): these letter pairs have naturally similar finger configurations
+   in PSL itself, independent of any data quality issue.
+
+One case (Nuungh) involved an unusual hand angle/rotation.
+
+Conclusion: model errors are not random -- they cluster around (a) fist-shaped
+signs with finger occlusion, and (b) letter pairs with inherently similar PSL
+hand-shapes.
