@@ -83,3 +83,11 @@ joints when they are folded and occluding each other. This is a known
 limitation of landmark-based (vs. pixel-based) hand recognition for fist-like
 signs, and explains why "Tay" has a much higher failure rate (46.9%) than
 other classes.
+
+**Nateeja:** PCA se pata chalta hai k zyada tar classes 2D me kaafi overlap
+karti hain, jo tawaqqo ke mutabiq hai kyun k saare signs ek hi haath ki
+banawat se bante hain. Ek chhota cluster (dayen taraf) baqi sab se saaf
+alag hai, jo darust karta hai k kam se kam kuch harf shape ke lihaaz se
+kaafi mukhtalif hain. In 2 dimensions me sirf X% variance capture hoti hai,
+is liye ye sirf ek jhalak hai — asal model 63 dimensions par kaam karega,
+jahan farq aur bhi saaf hoga.
