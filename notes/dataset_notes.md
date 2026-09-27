@@ -14,6 +14,11 @@ Authors: Sameena Javaid, Shahood Sajid, Yusra Khan Baloch (Dept. of Computer Sci
 - Some images use .jpg, some .JPG — case must be handled in code
 
 
+## Dynamic letters (excluded, for future reference if ever needed)
+
+2-Hay → ہ (Choti Hay), Jeem → ج (Jeem), Alifmad → آ (Alif Madda), Aray → ڑ (Rray)
+
+
 ## Decision (confirmed)
 
 - Use only the 36 folders ending in "-Original". Do NOT use "-Augmented" folders.
@@ -33,3 +38,25 @@ Authors: Sameena Javaid, Shahood Sajid, Yusra Khan Baloch (Dept. of Computer Sci
 - Difference of 1 image is negligible and does not affect the project.
 - Note: Windows treats .jpg and .JPG as the same extension (case-insensitive
   filesystem), so counting code must normalize extensions to avoid double-counting.
+
+  
+## Visual inspection (Step 24)
+
+- Hand is clear, sharp and fully visible in all sampled images.
+- Backgrounds vary a lot between signers (different clothing/rooms) — not a
+  concern since we use hand landmarks, not raw pixels.
+- "Kaf" sign has a difficult, folded-hand angle with overlapping fingers —
+  may cause more landmark-detection failures in Phase 2, worth watching.
+
+  
+## Duplicate check (Step 25)
+
+- Checked each class folder for a signer ID (sXXXX) appearing more than once.
+- Result: 0 folders had a repeated signer. Each signer appears at most once
+  per letter, so there is no within-class duplication to worry about.
+
+  
+## Label mapping source (Step 26)
+
+Mapped using the official FESF PSL Dictionary (https://psl.org.pk/dictionary/8-alphabet-urdu),
+matching each dataset folder name to FESF's own alphabet naming.
