@@ -24,3 +24,12 @@ Authors: Sameena Javaid, Shahood Sajid, Yusra Khan Baloch (Dept. of Computer Sci
   Suad, Taay, Tay, Tuey, Wao, Zaal, Zaey, Zay, Zuad, Zuey
 - Signer ID is embedded in the filename as "sXXXX" (e.g. s0251). This will be used
   for signer-wise train/test splitting (Phase 4) to avoid leakage.
+
+  
+## Verified counts (Step 22-23)
+
+- Paper reports 2,897 original images across 36 static classes.
+- Our own count (after removing augmented/dynamic folders): 2,896 images.
+- Difference of 1 image is negligible and does not affect the project.
+- Note: Windows treats .jpg and .JPG as the same extension (case-insensitive
+  filesystem), so counting code must normalize extensions to avoid double-counting.
