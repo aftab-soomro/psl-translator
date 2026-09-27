@@ -61,3 +61,25 @@ Authors: Sameena Javaid, Shahood Sajid, Yusra Khan Baloch (Dept. of Computer Sci
 Mapped using the official FESF PSL Dictionary (https://psl.org.pk/dictionary/8-alphabet-urdu),
 matching each dataset folder name to FESF's own alphabet naming.
 
+
+## Landmark extraction results (Step 36-39)
+
+- 2,896 original images -> 2,727 successful landmark extractions, 169 failed (5.8%)
+- "Tay" is a clear outlier: 43/81 images failed (46.9% fail rate), leaving only
+  43 usable images -- far below the ~75-82 that other classes have.
+- Next highest fail rates: Ain (16.5%), Ghain (16.2%), Dochahay (13.8%)
+- All other classes have 0-10% fail rate, comfortably above 70 images
+- This imbalance (Tay having ~half the data of other classes) is a known
+  limitation and will be revisited in error analysis and the report.
+
+  
+## Tay failure analysis (Step 40)
+
+Visually inspected 6 failed "Tay" images. All show a closed-fist hand shape
+with fingers curled and overlapping, viewed knuckles-first toward the camera.
+Lighting, background and framing are all fine -- the failure is specifically
+because MediaPipe's landmark model struggles to resolve individual finger
+joints when they are folded and occluding each other. This is a known
+limitation of landmark-based (vs. pixel-based) hand recognition for fist-like
+signs, and explains why "Tay" has a much higher failure rate (46.9%) than
+other classes.
