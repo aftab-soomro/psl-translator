@@ -39,6 +39,7 @@ def predict(image_path):
             "letter": predicted harf ka naam (str), ya None agar haath na mile
             "confidence": us harf ki probability (0-1), ya None
             "probabilities": saare 36 harfon ki probabilities ka dict, ya None
+            "landmarks": 63 raw landmark numbers ki list, ya None
             "error": agar kuch ghalat hua to wajah (str), warna None
     """
     model, class_names = _load_model()
@@ -49,6 +50,7 @@ def predict(image_path):
             "letter": None,
             "confidence": None,
             "probabilities": None,
+            "landmarks": None,
             "error": "Haath nahi mila. Saaf roshni me, ek haath camera ke saamne rakhein.",
         }
 
@@ -65,5 +67,6 @@ def predict(image_path):
         "letter": predicted_letter,
         "confidence": confidence,
         "probabilities": prob_dict,
+        "landmarks": raw_landmarks,
         "error": None,
     }
