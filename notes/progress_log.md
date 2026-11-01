@@ -167,3 +167,13 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - App check (v3): main page + top-3, left hand, Word Builder + awaaz, khuli hatheli, sab theek.
 - Phase 12 mukammal, siwaye Step 123 (quiz, chhora) aur Step 126 (videos, stretch).
 - Faisle pending: v3 vs v4 (apni photos kam/zyada roshni mein, Phase 11).
+
+## Step 126 (a-c): 4 dynamic harf videos se, 2026-11-01
+- Videos: 393 mp4 (2-Hay 87, Alifmad 105, Aray 102, Jeem 99), 1920x1080, 30 fps, 43-64 frames. s316.mp4 ka naam 3-digit tha (signer 0316 maana).
+- Split: test = wahi 16 test signers (61 videos); baaqi sab (train aur "none" signers) train (332 videos). Group = signer_id.
+- Landmarks: har doosra frame (step=2), 640 px chaurai par, wahi extract_landmarks(). 11,439 frames, 96.5% mein haath mila. data/processed/video_landmarks.csv (gitignored).
+- Features: gaye hue frames interpolation se, har frame normalize + kalai ki harkat (2 numbers), video ko T time steps mein resample. T=8: 520 features.
+- Signer-wise CV (5-fold, train videos): Baseline 0.271; KNN 0.967; SVM 0.976; RF 0.991; MLP 0.985 (T=8). T=16 sab thora kam. Chunao: RF, T=8.
+- Test (61 videos): RF T=8 0.9672 (2 galtiyan, dono 2-Hay -> Aray); SVM/MLP 0.9836; KNN 0.9672; baseline 0.2459. Files: results/advanced_video_cv.csv, advanced_video_test.csv, models/dynamic_rf_T8.joblib.
+- Explain it simply: static harf ek tasveer se pehchante hain, dynamic harf mein haath hilta hai. Video ke frames ke landmarks ko ek lambi list bana kar (fixed lambai) model ko diya.
+- Limit: sirf 4 harf, har ek ki harkat bohat alag, is liye asan masla. Videos 1080p studio jaisi hain.

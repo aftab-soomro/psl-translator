@@ -81,3 +81,9 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** Augmented images kyun nahi use ki shuru mein, aur baad mein kya hua?
 **Jawab:** Agar ek signer ki original train mein aur copy test mein ho to leakage hota. Baad mein sirf train signers ki copies jodi. CV mein farq +0.1 point tha, yaani lagbhag koi faida nahi, kyunki landmarks aur normalization roshni/zoom ka asar pehle hi hata dete hain.
+
+**Sawal:** Dynamic harf ke liye alag model kyun?
+**Jawab:** Static harf ek tasveer se pehchane jate hain, dynamic harf mein haath ki harkat zaroori hai. Humne video ke frames ke landmarks nikal kar, fixed time steps mein baant kar, ek lambi feature list banayi.
+
+**Sawal:** Videon mein 99% CV accuracy itni zyada kyun hai?
+**Jawab:** Sirf 4 harf hain aur unki harkat bohat alag hai. CV signer-wise thi (naye signers). Test par bhi 96.7% aaya, to leakage nahi.

@@ -27,3 +27,6 @@ app/audio_cache/*.mp3
 
 data/processed/aug_parts/
 data/processed/aug_landmarks.csv
+
+data/processed/video_parts/
+data/processed/video_landmarks.csv

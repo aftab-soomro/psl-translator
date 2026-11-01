@@ -30,3 +30,5 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-01 | Claude (chat) | Step 124b v4 (augmented + mirror) ka CV/test aur roshni wali soch ka plan | Claude ne code likha, Aftab ne chalaya. Roshni wala sawal Aftab ne uthaya |
 
 | 2026-11-01 | Claude (chat) | Step 125 summary tables ka code aur app check ki list | Claude ne code likha, Aftab ne chalaya aur check kiya |
+
+| 2026-11-01 | Claude (chat) | Step 126 dynamic harf videos: design, feature code, CV/test | Claude ne code likha, Aftab ne chalaya aur check kiya |
