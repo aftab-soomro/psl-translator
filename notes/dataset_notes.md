@@ -185,3 +185,12 @@ One case (Nuungh) involved an unusual hand angle/rotation.
 Conclusion: model errors are not random -- they cluster around (a) fist-shaped
 signs with finger occlusion, and (b) letter pairs with inherently similar PSL
 hand-shapes.
+
+## Advanced extras
+
+### B4: Top-3 predictions + low-confidence warning (Step 116)
+- App shows top-3 letters with probabilities, using SVM predict_proba.
+- Warning shown below 40% confidence. Threshold chosen from observation: some
+  correct predictions had 32-42% confidence (e.g. Tuey), so low confidence is
+  a hint to retry, not proof of a wrong answer.
+- No retraining needed; core model unchanged (best_model.joblib).
