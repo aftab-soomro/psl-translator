@@ -13,6 +13,7 @@ from src.landmarks import extract_landmarks
 from src.features import normalize_landmarks
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
+MODEL_FILE = "best_model_v2_mirror.joblib"   # core wapas chahiye to: "best_model_core_v1.joblib"
 
 _model = None
 _class_names = None
@@ -22,7 +23,7 @@ def _load_model():
     """Model aur class names sirf ek dafa load hote hain (pehli call par)."""
     global _model, _class_names
     if _model is None:
-        _model = joblib.load(MODELS_DIR / "best_model.joblib")
+        _model = joblib.load(MODELS_DIR / MODEL_FILE)
         _class_names = joblib.load(MODELS_DIR / "class_names.joblib")
     return _model, _class_names
 
