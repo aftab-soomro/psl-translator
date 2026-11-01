@@ -1,14 +1,17 @@
+import hashlib
 import sys
 import tempfile
 from pathlib import Path
 
 import streamlit as st
+from gtts import gTTS
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from src.predict import predict
 from src.letters import LETTER_MAP
 
 LOW_CONFIDENCE = 0.40
+AUDIO_DIR = Path(__file__).resolve().parent.parent / "audio_cache"
 
 st.set_page_config(page_title="Word Builder", page_icon="✍️")
 st.title("Word Builder")
@@ -39,11 +42,26 @@ def clear_all():
     st.session_state.cam_n += 1
 
 
+def speak(text):
+    """Urdu lafz ki mp3 deta hai. Pehle cache dekhta hai, warna gTTS (internet chahiye)."""
+    AUDIO_DIR.mkdir(exist_ok=True)
+    f = AUDIO_DIR / (hashlib.md5(text.encode("utf-8")).hexdigest() + ".mp3")
+    if f.exists():
+        return f.read_bytes(), None
+    try:
+        gTTS(text=text, lang="ur").save(str(f))
+        return f.read_bytes(), None
+    except Exception as e:
+        if f.exists():
+            f.unlink()                   # adhoori file na bache
+        return None, str(e)
+
+
 # --- abhi tak ka lafz (Urdu right-to-left) ---
-word = "".join(st.session_state.letters).strip() or "—"
+spoken = "".join(st.session_state.letters).strip()
 st.markdown(
     f"<div dir='rtl' style='font-size:64px; text-align:center; padding:12px; "
-    f"border:1px solid #888; border-radius:8px;'>{word}</div>",
+    f"border:1px solid #888; border-radius:8px;'>{spoken or '—'}</div>",
     unsafe_allow_html=True,
 )
 
@@ -51,6 +69,14 @@ c1, c2, c3 = st.columns(3)
 c1.button("⌫ Backspace", on_click=backspace, width="stretch")
 c2.button("␣ Space", on_click=add_space, width="stretch")
 c3.button("🗑 Clear", on_click=clear_all, width="stretch")
+
+if st.button("🔊 Lafz sunao", disabled=not spoken, width="stretch"):
+    audio, err = speak(spoken)
+    if audio:
+        st.audio(audio, format="audio/mp3", autoplay=True)
+    else:
+        st.warning("Awaaz nahi ban saki. Internet chahiye, ya ye lafz pehle cache nahi hua.")
+        st.caption(f"Wajah: {err}")
 
 st.divider()
 

@@ -22,3 +22,5 @@ __pycache__/
 
 # App ka temporary snapshot (chehra hota hai, commit nahi karna)
 temp_snapshot.jpg
+
+app/audio_cache/*.mp3

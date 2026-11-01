@@ -66,3 +66,6 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** Agar model galat harf bataye to?
 **Jawab:** Page top-3 predictions dikhata hai, user sahi wala chun kar jod sakta hai. Ye is liye zaroori hai ke Tuey/Daal jaisi milti julti jodiyon mein model confuse hota hai.
+
+**Sawal:** Agar demo ke waqt internet na ho to awaaz ka kya hoga?
+**Jawab:** Har bola hua lafz mp3 ki shakal mein app/audio_cache mein save hota hai. Demo ke lafz pehle bol kar cache kar lete hain, to bina internet bhi chalte hain.

@@ -119,3 +119,10 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Test: manual, 3 harf jode, backspace aur clear theek chale.
 - Explain it simply: Streamlit har click par page dobara chalata hai, to normal variable bhool jata hai. session_state ek yaaddasht hai jo bachi rehti hai. Top-3 se chunne se model ki galti bhi theek ho sakti hai.
 - Baaqi safai: LETTER_MAP ab do jagah hai (app.py aur src/letters.py), Phase 14 mein app.py ko import par laga dena.
+
+## Step 120 (A2): Lafz ko Urdu mein bolna (gTTS), 2026-11-01
+- Kya: Word Builder page mein "Lafz sunao" button. gTTS (lang="ur") se mp3 banti hai, st.audio se chalti hai.
+- Fallback: har lafz ki mp3 app/audio_cache/<md5>.mp3 mein cache hoti hai. Cache wala lafz bina internet chalta hai. Naya lafz bina internet par warning aati hai.
+- Test: awaaz Urdu mein aayi, cache file ban gayi (~7 KB har ek).
+- Explain it simply: gTTS lafz Google ko bhejta hai aur awaaz wapas milti hai (internet chahiye). Ek baar bani awaaz hum save rakhte hain, is liye doosri dafa offline bhi chalti hai.
+- .gitignore: app/audio_cache/*.mp3. Demo se pehle sirf demo ke lafz ki files git add -f se commit karni hain.
