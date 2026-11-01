@@ -45,3 +45,12 @@ A: Nahi. Test me Tuey ko Daal 46.9% confidence se bata diya gaya, jabke threshol
 
 **Q: Photo project folder me kyun nahi rakhi?**
 A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai aur khud delete ho jati hai.
+
+**Sawal:** Agar koi bina sign ke khuli hatheli dikhaye to model kya karega?
+**Jawab:** Wo phir bhi 36 harf mein se ek chunega, hamare test mein Bay 77%. Kyunki training mein "koi harf nahi" class nahi thi. Confidence threshold sirf unhe pakadta hai jahan model khud confuse ho.
+
+**Sawal:** Left hand ke liye kya kiya?
+**Jawab:** Train ke landmarks ke x ko ulta kar ke mirror copies bana ke training mein daali. Left hand right ka mirror image hai, is liye model dono seekh gaya. Left hand par accuracy 79.7% se 93.8% hui.
+
+**Sawal:** Test par right-hand score kyun gira jab CV mein barha tha?
+**Jawab:** Farq sirf lagbhag 7 images ka hai aur test mein sirf 16 signers hain, shayad shor. Faisla CV se hua tha, test dekh kar nahi badla. Dono nateeje report mein hain.

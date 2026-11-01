@@ -52,3 +52,6 @@ test.csv Phase 4 (Step 54) me bana, aur usko Phase 7 (Step 81) tak
 nahi khola jayega -- na EDA ke liye, na model choice ke liye, na
 hyperparameter tuning ke liye. Sirf train.csv par cross-validation
 se sab faisle honge.
+
+## Extras: test.csv ka dobara istemal (Step 117 se)
+test.csv par har variant ke numbers report hue hain (core v1 aur v2 mirror), lekin variant ka chunao sirf 5-fold CV (train.csv) se hua. Test numbers dekh kar koi faisla nahi badla. Step 117: CV ne (a) mirror-train chuna; test par right-hand 0.9377 raha (core 0.9502), phir bhi (a) hi rakha.

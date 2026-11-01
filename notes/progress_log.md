@@ -88,3 +88,16 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - **Faisla:** Photos me sirf haath, chehra nahi (privacy). Classmates ko sirf ID (c01...) se likhenge, naam nahi. custom_test se kabhi train/tune/select nahi.
 - **Simply:** Ye "ghar ka imtihan" hai. Class ke imtihan (dataset test) me aur ghar me bilkul naye logon ke saamne model ka score farq hoga, aur wo farq hi sab se sachi baat batata hai.
 - **Status:** Photos lena abhi baaqi (Aftab/Meraj ka kaam).
+## Step 116 (B4): Top-3 + low-confidence warning, 2026-11-01
+- Kya: app/app.py mein top-3 predictions aur 40% se kam confidence par warning (code pehle se tha). Teen manual tests kiye.
+- Nateeje: Alif 87.5% sahi; Tuey -> Daal 46.9% (galat, warning nahi aayi); khuli hatheli -> Bay 77.1% (warning nahi aayi). Top-3: Bay 77.1, Say 7.6, Fay 4.2.
+- Nateeja: warning sirf "model confuse" ko pakadti hai. Model 36 harf mein se hi chunta hai, is liye kisi bhi haath par confident jawab de sakta hai.
+- Explain it simply: model ke paas "pata nahi" ka option nahi hai. Wo hamesha 36 mein se ek harf chun leta hai, chahe haath kisi harf ka na ho.
+- Limitation (report ke liye): out-of-distribution input par confidence bharosemand nahi.
+
+## Step 117 (C2): Left-hand support, 2026-11-01
+- Kya: notebooks/09_left_hand.ipynb. Left hand = right hand ka mirror, normalized landmarks mein x ulta (x *= -1).
+- CV (5-fold, SVM C=100 gamma=0.01, train.csv): baseline right 0.9187, left (bina fix) 0.7760, (b) flip 0.9187, (a) mirror-train right 0.9316, left 0.9312. (a) har fold mein baseline se behtar (+0.5 se +2.3 points).
+- Faisla (CV se): (a) mirror-train. Model: models/best_model_v2_mirror.joblib. Core model chhua nahi.
+- Test (results/advanced_left_hand_test.csv): core right 0.9502, core left 0.7972, (a) right 0.9377, (a) left 0.9377.
+- Explain it simply: left hand right hand ka shishe wala aks hai. Model ko dono tarah ke haath dikha kar sikhaya, to left hand par accuracy 80% se 94% ho gayi, right hand par thora kam (95% se 93.8%).

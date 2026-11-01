@@ -1,0 +1,6 @@
+variant,test_acc,test_macro_f1
+baseline core v1 | right,0.9502,0.9482
+baseline core v1 | left (no fix),0.7972,0.7907
+(b) flip core v1 | left,0.9502,0.9482
+(a) mirror-train v2 | right,0.9377,0.9355
+(a) mirror-train v2 | left,0.9377,0.9355

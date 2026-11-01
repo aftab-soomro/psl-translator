@@ -11,3 +11,6 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-09-26 to 2026-10-25 | Claude Code | Phases 1-9 (dataset checks, landmark extraction, EDA, split, models, tuning, evaluation, error analysis, predict(), Streamlit app) | **Backfilled 2026-11-01 from git history. Aftab/Meraj to confirm exact extent (what AI wrote vs what we wrote/changed).** |
 | 2026-11-01 | Claude Code | Read-only state report of the repo; finished Step 109 (tempfile, .gitignore, width="stretch", moved notebook 01); wrote progress_log.md and viva_qa.md; tested the app with Streamlit AppTest | AI implemented and ran; we reviewed |
 | 2026-11-01 | Claude Code | Diagnosed `streamlit.exe` blocked by Windows Application Control; suggested `python -m streamlit` | Troubleshooting only |
+- 2026-11-01: Claude chat. Phase 12 ki planning, roadmap PDF, Step 116 ka review aur notes ke lines. Code: Claude Code ne pehle likha, ab yahan se aage code Claude likh raha hai, Aftab chalata aur check karta hai.
+
+| 2026-11-01 | Claude (chat) | Step 117 left-hand: experiment design, code, nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya aur check kiya |
