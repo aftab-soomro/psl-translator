@@ -126,3 +126,12 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Test: awaaz Urdu mein aayi, cache file ban gayi (~7 KB har ek).
 - Explain it simply: gTTS lafz Google ko bhejta hai aur awaaz wapas milti hai (internet chahiye). Ek baar bani awaaz hum save rakhte hain, is liye doosri dafa offline bhi chalti hai.
 - .gitignore: app/audio_cache/*.mp3. Demo se pehle sirf demo ke lafz ki files git add -f se commit karni hain.
+
+## Step 121 (B2): Clustering of 36 average hand shapes, 2026-11-01
+- Kya: notebooks/11_clustering.ipynb. train.csv se har harf ka average shape (36 x 63). Hierarchical (Ward) dendrogram, pairwise distance rank, k-means (elbow, silhouette).
+- Files: reports/figures/07_dendrogram.png, 08_kmeans_elbow_silhouette.png; results/advanced_cluster_pairs.csv, advanced_kmeans_k.csv.
+- Pair ranks (630 jodiyon mein, 1 = sabse qareeb): Tuey-Daal 1, Zuad-Zuey 6, Ain-Ghain 26, Ray-Zaal 100.
+- k-means: k=2 silhouette 0.635 (sirf Kaf, Pay alag); k=3..12 silhouette 0.305-0.382 (k=5: 0.382). Elbow mein saaf mor nahi. Matlab shapes saaf alag groups nahi banate.
+- k=5: Tuey/Daal ek cluster mein, Ain/Ghain apne cluster mein, Zuad/Zuey ek cluster mein, Ray aur Zaal alag clusters mein.
+- Explain it simply: clustering mein harf ke naam nahi batate, sirf shapes se groups banwate hain. Jo harf model confuse karta hai wo shapes mein bhi qareeb nikle, to confusion ki wajah shapes ki asli samanta hai.
+- Limit: Meem-Nuun (rank 2) bhi bohat qareeb hain, par model ne unko zyada confuse nahi kiya. Qareeb hona zaroori hai, kaafi nahi.

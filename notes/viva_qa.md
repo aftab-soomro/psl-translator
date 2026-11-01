@@ -69,3 +69,9 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** Agar demo ke waqt internet na ho to awaaz ka kya hoga?
 **Jawab:** Har bola hua lafz mp3 ki shakal mein app/audio_cache mein save hota hai. Demo ke lafz pehle bol kar cache kar lete hain, to bina internet bhi chalte hain.
+
+**Sawal:** Clustering ka tumhare project se kya taalluq hai?
+**Jawab:** Humne 36 harfon ke average shapes ko bina naam ke group kiya. Jin harfon ko hamara classifier confuse karta hai (Tuey/Daal, Zuad/Zuey, Ain/Ghain) wo clustering mein bhi qareeb nikle. To confusion ki wajah shapes ki samanta hai.
+
+**Sawal:** k-means mein k kaise chuna?
+**Jawab:** Elbow aur silhouette se dekha. Elbow mein saaf mor nahi tha, silhouette k=2 par oonchi (sirf Pay aur Kaf alag) aur baaqi ~0.3, yaani groups kamzor. Isliye koi ek "sahi k" nahi.

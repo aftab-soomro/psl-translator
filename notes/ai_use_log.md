@@ -20,3 +20,5 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-01 | Claude (chat) | Step 119 Word Builder page ka code | Claude ne code likha, Aftab ne chalaya aur test kiya |  
 
 | 2026-11-01 | Claude (chat) | Step 120 gTTS speech aur audio cache ka code | Claude ne code likha, Aftab ne chalaya aur test kiya |
+
+| 2026-11-01 | Claude (chat) | Step 121 clustering ka code aur nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |
