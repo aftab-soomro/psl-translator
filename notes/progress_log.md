@@ -135,3 +135,10 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - k=5: Tuey/Daal ek cluster mein, Ain/Ghain apne cluster mein, Zuad/Zuey ek cluster mein, Ray aur Zaal alag clusters mein.
 - Explain it simply: clustering mein harf ke naam nahi batate, sirf shapes se groups banwate hain. Jo harf model confuse karta hai wo shapes mein bhi qareeb nikle, to confusion ki wajah shapes ki asli samanta hai.
 - Limit: Meem-Nuun (rank 2) bhi bohat qareeb hain, par model ne unko zyada confuse nahi kiya. Qareeb hona zaroori hai, kaafi nahi.
+
+## Step 122 (B1): Random Forest feature importance on hand skeleton, 2026-11-01
+- Kya: notebooks/12_feature_importance.ipynb. RF (300 trees, depth 20, seed 42) train.csv ke 63 features par. Har landmark ki importance = x+y+z ka jod. Average haath ke skeleton par rang se.
+- Files: reports/figures/09_feature_importance_skeleton.png, results/advanced_feature_importance.csv.
+- Top: middle_tip 0.0896, thumb_tip 0.0873, pinky_tip 0.0654, ring_tip 0.0640, middle_dip 0.0626, index_tip 0.0622. Wrist 0 (normalization se origin).
+- Explain it simply: RF ke darakhton ne harf alag karne ke liye sabse zyada ungliyon ke sire (aur unke qareeb ke joints) istemal kiye. Hatheli ke neeche ke points kam kaam aaye.
+- Limit: RF ki importance milte julte features mein baant jati hai, aur tips zyada hilte hain, is liye ise "sach" nahi, "RF ne kya istemal kiya" samjhein.

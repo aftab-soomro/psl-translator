@@ -75,3 +75,6 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** k-means mein k kaise chuna?
 **Jawab:** Elbow aur silhouette se dekha. Elbow mein saaf mor nahi tha, silhouette k=2 par oonchi (sirf Pay aur Kaf alag) aur baaqi ~0.3, yaani groups kamzor. Isliye koi ek "sahi k" nahi.
+
+**Sawal:** Haath ka kaun sa hissa sabse ahem nikla aur kyun?
+**Jawab:** Random Forest ke hisaab se ungliyon ke sire (fingertips), khaaskar middle aur thumb tip. Wajah ye ho sakti hai ke harf ke sign mein ungliyan sabse zyada alag hoti hain. Wrist ki importance 0 hai kyunki normalization mein wo origin hai.
