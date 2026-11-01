@@ -1,0 +1,6 @@
+model,right,left
+"core v1 (63, no mirror)",0.9502,0.7972
+v2 (63 + mirror),0.9377,0.9377
+"v3 (93 + mirror, g=0.01) CHOSEN",0.9324,0.9324
+"v3b (93 + mirror, g=0.0068)",0.9342,0.9342
+v4 (93 + mirror + augmented),0.9448,0.9448

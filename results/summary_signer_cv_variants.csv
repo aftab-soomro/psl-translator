@@ -1,0 +1,6 @@
+variant,right,left
+"A raw63, no mirror (core style)",0.9252,0.7725
+B raw63 + mirror (v2),0.9311,0.9311
+C eng93 + mirror (v3),0.9499,0.9499
+"D eng93, no mirror",0.9458,0.8871
+F v4: eng93 + mirror + augmented,0.9509,0.9509

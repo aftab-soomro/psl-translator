@@ -158,3 +158,12 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Test (results/advanced_v4_test.csv): v3 0.9324; v4 0.9448 (+1.24). Dono left/right barabar (mirror).
 - Faisla: CV tie, test se tie nahi todte. App mein v3. v4 ko models/best_model_v4_aug.joblib (5.5 MB) mein save kiya; v3 vs v4 ka faisla Aftab ki apni photos (kam/zyada roshni) se hoga (Phase 11).
 - Explain it simply: augmented copies mein roshni ka farq halka hai, to "andhere mein behtar" ka faida CV/test se nahi dikhta. Isko apni webcam photos se naapenge.
+
+## Step 125: Summary tables aur app ka dobara check, 2026-11-01
+- Kya: notebooks/14_summary_tables.ipynb. Saare variants ke numbers results/*.csv se: results/summary_test_variants.csv aur results/summary_signer_cv_variants.csv.
+- Test (right/left): core v1 0.9502/0.7972; v2 0.9377/0.9377; v3 0.9324/0.9324; v3b 0.9342/0.9342; v4 0.9448/0.9448.
+- Signer-wise CV (right/left): A 0.9252/0.7725; B 0.9311/0.9311; C (v3) 0.9499/0.9499; D 0.9458/0.8871; F (v4) 0.9509/0.9509.
+- Nateeja: mirror left hand ke liye zaroori (CV mein -15 points ka farq bina mirror), naye features ~+1.9 points CV, augmented CV mein ~+0.1.
+- App check (v3): main page + top-3, left hand, Word Builder + awaaz, khuli hatheli, sab theek.
+- Phase 12 mukammal, siwaye Step 123 (quiz, chhora) aur Step 126 (videos, stretch).
+- Faisle pending: v3 vs v4 (apni photos kam/zyada roshni mein, Phase 11).
