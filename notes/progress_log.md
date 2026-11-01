@@ -75,3 +75,16 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - **Nateeja/sabaq:** Tuey->Daal wohi known confusion hai (Phase 7). Low-confidence warning har galti nahi pakadti; ye report ki limitation hai.
 - **Simply:** App ko safai di: photo apne aap delete hoti hai, purani warnings hati. Aur dekha ke app ghalat jawab bhi kabhi kabhi bharose se deti hai.
 - **Windows note:** `streamlit.exe` Aftab ke laptop par Application Control policy se block hai. Chalane ka tareeqa: `python -m streamlit run app/app.py`.
+
+## 2026-11-01 | Phase 10 | Step 107 (10 harf manual test) aur Step 108 (Meraj)
+- **Step 107:** Aftab ne zubani bataya ke 10 harf webcam se test kar liye (suggested list: Alif, Lam, Meem, Wao, Kaf, Tuey, Daal, Ain, Tay, Nuun). **Harf-wise nateeje yahan record nahi hue.** Agar report me app testing ka zikr karna ho to ye table baad me bharni hogi.
+- **Khuli hatheli (open palm) test:** nateeja record nahi hua. Step 116 ke teen tests me se ye baaqi hai.
+- **Step 108:** Meraj ke laptop par test baad me hoga. Status: baaqi.
+- **Push:** Phase 10 poora nahi hua (Step 108 baaqi), isliye `ccaac18` tak ke commits abhi push nahi hue.
+
+## 2026-11-01 | Phase 11 | Step 110-111 tayari (classmates ki photos)
+- **Kya:** `notes/custom_test_protocol.md` likha (ijazat, kitni photos, photo checklist, file naming `c01_Lam_1.jpg`, 36 harf ki table). `data/custom_test/<Harf>/` ke 36 folder bana diye (gitignored, `git check-ignore` se verify).
+- **Kyun:** Dataset test me bhi signers dataset wale the. Naye log, naya camera aur background par score kya aata hai, ye real-world ke qareeb hai.
+- **Faisla:** Photos me sirf haath, chehra nahi (privacy). Classmates ko sirf ID (c01...) se likhenge, naam nahi. custom_test se kabhi train/tune/select nahi.
+- **Simply:** Ye "ghar ka imtihan" hai. Class ke imtihan (dataset test) me aur ghar me bilkul naye logon ke saamne model ka score farq hoga, aur wo farq hi sab se sachi baat batata hai.
+- **Status:** Photos lena abhi baaqi (Aftab/Meraj ka kaam).

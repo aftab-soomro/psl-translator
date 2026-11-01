@@ -29,6 +29,16 @@ A: Sirf ek dafa, Phase 7 me. Models CV se chune gaye.
 **Q: Baseline ka kya faida?**
 A: Baseline (sab se zyada wali class) sirf ~3% deta hai. Is se pata chalta hai ke hamare 95% asli seekhne ka nateeja hain, qismat ka nahi.
 
+## Custom test (unseen signers)
+**Q: Dataset test ke ilawa apna test set kyun?**
+A: Dataset test ke signers bhi usi dataset ke the (wahi camera aur roshni). Classmates ki photos naye log, naya camera aur naya background hain. Dono scores ka farq batata hai ke model asli duniya me kitna chalega.
+
+**Q: Custom test se model tune kyun nahi kiya?**
+A: Agar tune karte to ye test set bhi seekhne ka hissa ban jata aur score jhoota hota. Ye sirf aakhri imtihan hai.
+
+**Q: Classmates ki privacy ka kya?**
+A: Photos me sirf haath, chehra nahi. Folder gitignored hai, GitHub par nahi jata. Classmates sirf c01, c02 ID se likhe jate hain.
+
 ## App
 **Q: Low-confidence warning har galti pakadti hai?**
 A: Nahi. Test me Tuey ko Daal 46.9% confidence se bata diya gaya, jabke threshold 40% hai, to warning nahi aayi. Warning sirf ishara hai, saboot nahi.
