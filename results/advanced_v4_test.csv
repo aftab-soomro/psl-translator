@@ -1,0 +1,5 @@
+model,hand,test_acc,test_macro_f1
+v3 (93 + mirror),right,0.9324,0.9277
+v3 (93 + mirror),left,0.9324,0.9277
+v4 (93 + mirror + augmented),right,0.9448,0.9426
+v4 (93 + mirror + augmented),left,0.9448,0.9426

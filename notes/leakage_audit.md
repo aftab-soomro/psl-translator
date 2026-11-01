@@ -61,3 +61,5 @@ Test par v3 ka score CV se mel nahi khaya, to shak hua ke StratifiedKFold CV sig
 
 ## Step 124: augmented images
 Augmented copies sirf train.csv ke signers ki li gayi (signer ID filename ke sXXXX se match). Test signers ki 5,516 copies exclude. CV mein har fold ke andar sirf us fold ke train signers ki copies; assert se check ki ke validation signers ki koi copy nahi. Validation sirf original images par. test.csv par D aur E dono report hue, chunao CV se hua.
+
+Step 124b: v4 (augmented + mirror) ka CV signer-wise, wahi asserts. test.csv par v3 aur v4 dono report hue (v3 0.9324, v4 0.9448), magar chunao test se nahi hua. CV tie hai, faisla alag custom photos (kam/zyada roshni) par chhora gaya.

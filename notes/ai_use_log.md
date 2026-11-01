@@ -26,3 +26,5 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-01 | Claude (chat) | Step 122 feature importance ka code aur tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |
 
 | 2026-11-01 | Claude (chat) | Step 124 augmented experiment ka design, code aur nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |
+
+| 2026-11-01 | Claude (chat) | Step 124b v4 (augmented + mirror) ka CV/test aur roshni wali soch ka plan | Claude ne code likha, Aftab ne chalaya. Roshni wala sawal Aftab ne uthaya |

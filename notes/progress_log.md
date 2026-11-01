@@ -151,3 +151,10 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Faisla (CV se): augmented apnane ki wajah nahi (data 6.5x, score lagbhag barabar). Model v3 hi rakha.
 - Tay ki sirf 166 augmented copies mein haath mila (baaqi 278-420), wahi band mutthi wala masla.
 - Explain it simply: augmented copy mein roshni/zoom badalta hai, magar landmarks aur normalization ye farq pehle hi hata dete hain, to copy se wahi numbers nikalte hain. Naye signers (naye haath) se faida hota, copies se nahi.
+
+### Step 124b: v4 = eng93 + mirror + augmented, 2026-11-01
+- Augmented copies dekhin (original ke saath): roshni/rang mein halka farq, halka shift/zoom/ghumao, koi flip nahi, andhera nahi. Tasveerein saaf studio jaisi.
+- Signer-wise CV (results/advanced_v4_cv.csv): v3 0.9499; v4 0.9509 (+0.10, folds mila-jula).
+- Test (results/advanced_v4_test.csv): v3 0.9324; v4 0.9448 (+1.24). Dono left/right barabar (mirror).
+- Faisla: CV tie, test se tie nahi todte. App mein v3. v4 ko models/best_model_v4_aug.joblib (5.5 MB) mein save kiya; v3 vs v4 ka faisla Aftab ki apni photos (kam/zyada roshni) se hoga (Phase 11).
+- Explain it simply: augmented copies mein roshni ka farq halka hai, to "andhere mein behtar" ka faida CV/test se nahi dikhta. Isko apni webcam photos se naapenge.
