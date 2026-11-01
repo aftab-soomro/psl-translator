@@ -33,3 +33,25 @@ def normalize_landmarks(landmarks):
     points = points / hand_size
 
     return points.flatten()  # wapas 63 numbers ki seedhi list
+
+TIPS = [4, 8, 12, 16, 20]                         # fingertip points
+CHAINS = [(0, 1, 2, 3, 4), (0, 5, 6, 7, 8), (0, 9, 10, 11, 12),
+          (0, 13, 14, 15, 16), (0, 17, 18, 19, 20)]   # har ungli ke points
+
+
+def add_engineered_features(X):
+    """63 normalized landmarks (N, 63) -> (N, 93): fasle aur angles jod kar."""
+    P = X.reshape(len(X), 21, 3)
+    feats = []
+    for t in TIPS:                                 # 5: tip se kalai ka fasla
+        feats.append(np.linalg.norm(P[:, t], axis=1))
+    for i in range(5):                             # 10: tip se tip ka fasla
+        for j in range(i + 1, 5):
+            feats.append(np.linalg.norm(P[:, TIPS[i]] - P[:, TIPS[j]], axis=1))
+    for chain in CHAINS:                           # 15: joints ke angles
+        for k in range(1, 4):
+            a = P[:, chain[k - 1]] - P[:, chain[k]]
+            b = P[:, chain[k + 1]] - P[:, chain[k]]
+            cos = (a * b).sum(1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1) + 1e-9)
+            feats.append(np.arccos(np.clip(cos, -1, 1)))
+    return np.hstack([X, np.column_stack(feats)])

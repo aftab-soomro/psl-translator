@@ -54,3 +54,9 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** Test par right-hand score kyun gira jab CV mein barha tha?
 **Jawab:** Farq sirf lagbhag 7 images ka hai aur test mein sirf 16 signers hain, shayad shor. Faisla CV se hua tha, test dekh kar nahi badla. Dono nateeje report mein hain.
+
+**Sawal:** Naye features (angles/distances) kyun jode?
+**Jawab:** Raw coordinates model ko khud shape nikalni parti hai. Angles aur faasle seedhe batate hain ungli moori hai ya nahi, ye milte julte harfon (Tuey/Daal) mein madad kar sakta hai. CV mein har fold mein behtar aaye.
+
+**Sawal:** CV mein behtar, test mein kam, to kya karein?
+**Jawab:** Test mein sirf 562 images/16 signers hain, to ±1 point shor hai. Humne CV (aur signer-wise CV) se chunao kiya aur test ke numbers saaf report kiye. Test dekh kar faisla badalna cheating hoti.

@@ -14,3 +14,5 @@ Record of every place AI assistants were used in this project (for the report's 
 - 2026-11-01: Claude chat. Phase 12 ki planning, roadmap PDF, Step 116 ka review aur notes ke lines. Code: Claude Code ne pehle likha, ab yahan se aage code Claude likh raha hai, Aftab chalata aur check karta hai.
 
 | 2026-11-01 | Claude (chat) | Step 117 left-hand: experiment design, code, nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya aur check kiya |
+
+| 2026-11-01 | Claude (chat) | Step 118 features: design, code, CV aur signer-wise CV ki tashreeh | Claude ne code likha, Aftab ne chalaya aur check kiya |

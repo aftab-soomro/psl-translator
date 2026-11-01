@@ -55,3 +55,6 @@ se sab faisle honge.
 
 ## Extras: test.csv ka dobara istemal (Step 117 se)
 test.csv par har variant ke numbers report hue hain (core v1 aur v2 mirror), lekin variant ka chunao sirf 5-fold CV (train.csv) se hua. Test numbers dekh kar koi faisla nahi badla. Step 117: CV ne (a) mirror-train chuna; test par right-hand 0.9377 raha (core 0.9502), phir bhi (a) hi rakha.
+
+## Step 118: signer-wise CV test numbers dekhne ke baad chali
+Test par v3 ka score CV se mel nahi khaya, to shak hua ke StratifiedKFold CV signer-leak se khush-fehmi mein hai. Is liye train.csv par StratifiedGroupKFold(signer_id) chali (ye test numbers dekhne ke baad ka faisla tha). Nateeja: signer-wise CV ne wahi ranking di, yani shak ghalat tha. Test.csv par ab tak report hue variants: core v1, v2, v3, v3b. Chunao hamesha CV se hua.

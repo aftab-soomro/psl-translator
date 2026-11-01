@@ -13,7 +13,7 @@ from src.landmarks import extract_landmarks
 from src.features import normalize_landmarks
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
-MODEL_FILE = "best_model_v2_mirror.joblib"   # core wapas chahiye to: "best_model_core_v1.joblib"
+MODEL_FILE = "best_model_v3_eng.joblib"   # v2: "best_model_v2_mirror.joblib", core: "best_model_core_v1.joblib"
 
 _model = None
 _class_names = None

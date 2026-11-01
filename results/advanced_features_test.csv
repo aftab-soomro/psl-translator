@@ -1,0 +1,9 @@
+model,hand,test_acc,test_macro_f1
+"core v1 (63, no mirror)",right,0.9502,0.9482
+"core v1 (63, no mirror)",left,0.7972,0.7907
+v2 (63 + mirror),right,0.9377,0.9355
+v2 (63 + mirror),left,0.9377,0.9355
+"v3 (93 + mirror, g=0.01) CHOSEN",right,0.9324,0.9277
+"v3 (93 + mirror, g=0.01) CHOSEN",left,0.9324,0.9277
+"v3b (93 + mirror, g=0.0068)",right,0.9342,0.9294
+"v3b (93 + mirror, g=0.0068)",left,0.9342,0.9294

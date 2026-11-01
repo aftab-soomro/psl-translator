@@ -103,3 +103,12 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Explain it simply: left hand right hand ka shishe wala aks hai. Model ko dono tarah ke haath dikha kar sikhaya, to left hand par accuracy 80% se 94% ho gayi, right hand par thora kam (95% se 93.8%).
 
 - App test: predict.py ab best_model_v2_mirror.joblib use karta hai (MODEL_FILE constant, core v1 backup mehfooz). Notebook 08: 10/10 sahi (Tuey sahi par 38.69%, threshold se neeche). Webcam: Lam dono haathon se pehchana, 75.5% aur 83.5%.
+
+## Step 118 (B3): Angles aur fingertip distances, 2026-11-01
+- Kya: src/features.py mein add_engineered_features() (30 naye features: 5 tip-to-wrist, 10 tip-to-tip, 15 joint angles). Notebook 10_features_angles.ipynb.
+- CV (StratifiedKFold, 5-fold): raw63+mirror 0.9316; eng93+mirror (gamma 0.01) 0.9483, gamma 0.0068: 0.9460. Har fold mein behtar.
+- Test (results/advanced_features_test.csv): core v1 0.9502/left 0.7972; v2 0.9377; v3 (chosen) 0.9324; v3b 0.9342. CV aur test ki ranking alag.
+- Shak tha ke CV leaky hai; signer-wise CV (StratifiedGroupKFold, results/advanced_grouped_cv.csv) ne wahi ranking di (A 0.9252, B 0.9311, C 0.9499, D 0.9458 right-hand). Shak ghalat nikla.
+- Faisla (CV se): v3 = models/best_model_v3_eng.joblib. Core aur v2 mehfooz.
+- Explain it simply: model ko sirf points dene ke bajaye "ungli kitni moori hai" aur "angootha index ko chhoo raha hai" jaisi seedhi baatein bhi di. CV mein 1.7 points behtar, test mein thora kam, farq chhota hai.
+- App test: predict.py ab v3 use karta hai. Notebook 08: 9/10 sahi (Tuey -> Daal 44.54%, warning nahi aayi; Suad sahi par 66.8%).
