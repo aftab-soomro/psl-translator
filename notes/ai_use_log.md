@@ -24,3 +24,5 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-01 | Claude (chat) | Step 121 clustering ka code aur nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |
 
 | 2026-11-01 | Claude (chat) | Step 122 feature importance ka code aur tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |
+
+| 2026-11-01 | Claude (chat) | Step 124 augmented experiment ka design, code aur nateeje ki tashreeh | Claude ne code likha, Aftab ne chalaya. Report mein tashreeh Aftab/Meraj khud likhenge |

@@ -24,3 +24,6 @@ __pycache__/
 temp_snapshot.jpg
 
 app/audio_cache/*.mp3
+
+data/processed/aug_parts/
+data/processed/aug_landmarks.csv

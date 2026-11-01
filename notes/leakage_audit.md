@@ -58,3 +58,6 @@ test.csv par har variant ke numbers report hue hain (core v1 aur v2 mirror), lek
 
 ## Step 118: signer-wise CV test numbers dekhne ke baad chali
 Test par v3 ka score CV se mel nahi khaya, to shak hua ke StratifiedKFold CV signer-leak se khush-fehmi mein hai. Is liye train.csv par StratifiedGroupKFold(signer_id) chali (ye test numbers dekhne ke baad ka faisla tha). Nateeja: signer-wise CV ne wahi ranking di, yani shak ghalat tha. Test.csv par ab tak report hue variants: core v1, v2, v3, v3b. Chunao hamesha CV se hua.
+
+## Step 124: augmented images
+Augmented copies sirf train.csv ke signers ki li gayi (signer ID filename ke sXXXX se match). Test signers ki 5,516 copies exclude. CV mein har fold ke andar sirf us fold ke train signers ki copies; assert se check ki ke validation signers ki koi copy nahi. Validation sirf original images par. test.csv par D aur E dono report hue, chunao CV se hua.

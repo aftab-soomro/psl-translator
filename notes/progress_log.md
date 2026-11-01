@@ -142,3 +142,12 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Top: middle_tip 0.0896, thumb_tip 0.0873, pinky_tip 0.0654, ring_tip 0.0640, middle_dip 0.0626, index_tip 0.0622. Wrist 0 (normalization se origin).
 - Explain it simply: RF ke darakhton ne harf alag karne ke liye sabse zyada ungliyon ke sire (aur unke qareeb ke joints) istemal kiye. Hatheli ke neeche ke points kam kaam aaye.
 - Limit: RF ki importance milte julte features mein baant jati hai, aur tips zyada hilte hain, is liye ise "sach" nahi, "RF ne kya istemal kiya" samjhein.
+
+## Step 124: Augmented-image experiment, 2026-11-01
+- Kya: notebooks/13_augmented_experiment.ipynb. Zip se (extract kiye bina) 13,795 augmented images jo sirf train signers ki hain; landmarks nikale -> 11,821 kamyab (data/processed/aug_landmarks.csv, gitignored). Test signers (16) ki 5,516 copies bilkul istemal nahi hui.
+- Checks: train/test signers overlap 0; augmented signers sab train signers mein se; validation fold ke signers ki copies training mein nahi (assert).
+- Signer-wise CV (5-fold, eng93, SVM C=100 gamma=0.01, bina mirror): D originals only 0.9458; E originals+augmented 0.9468 (+0.1 point, folds mila-jula).
+- Test (results/advanced_augmented_test.csv): D 0.9413; E 0.9520.
+- Faisla (CV se): augmented apnane ki wajah nahi (data 6.5x, score lagbhag barabar). Model v3 hi rakha.
+- Tay ki sirf 166 augmented copies mein haath mila (baaqi 278-420), wahi band mutthi wala masla.
+- Explain it simply: augmented copy mein roshni/zoom badalta hai, magar landmarks aur normalization ye farq pehle hi hata dete hain, to copy se wahi numbers nikalte hain. Naye signers (naye haath) se faida hota, copies se nahi.

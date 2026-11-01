@@ -78,3 +78,6 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** Haath ka kaun sa hissa sabse ahem nikla aur kyun?
 **Jawab:** Random Forest ke hisaab se ungliyon ke sire (fingertips), khaaskar middle aur thumb tip. Wajah ye ho sakti hai ke harf ke sign mein ungliyan sabse zyada alag hoti hain. Wrist ki importance 0 hai kyunki normalization mein wo origin hai.
+
+**Sawal:** Augmented images kyun nahi use ki shuru mein, aur baad mein kya hua?
+**Jawab:** Agar ek signer ki original train mein aur copy test mein ho to leakage hota. Baad mein sirf train signers ki copies jodi. CV mein farq +0.1 point tha, yaani lagbhag koi faida nahi, kyunki landmarks aur normalization roshni/zoom ka asar pehle hi hata dete hain.
