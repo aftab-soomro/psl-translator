@@ -1,5 +1,6 @@
 import streamlit as st
 import sys
+import tempfile
 import cv2
 from pathlib import Path
 
@@ -24,23 +25,24 @@ st.write("Apna haath webcam ke saamne rakhein aur ek Urdu harf ka sign karein.")
 snapshot = st.camera_input("Apna haath camera ke saamne rakhein aur photo lein")
 
 if snapshot is not None:
-    temp_path = Path("temp_snapshot.jpg")
-    temp_path.write_bytes(snapshot.getvalue())
-
-    result = predict(temp_path)
+    # Photo ek temporary folder me jati hai, jo khatam hote hi khud delete ho jata hai
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        temp_path = Path(tmp_dir) / "snapshot.jpg"
+        temp_path.write_bytes(snapshot.getvalue())
+        result = predict(temp_path)
+        img = cv2.imread(str(temp_path))
 
     if result["error"]:
         st.warning(result["error"])
     else:
         # Asal image par landmarks (laal dots) draw karke dikhana
-        img = cv2.imread(str(temp_path))
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         h, w, _ = img_rgb.shape
         lm = result["landmarks"]
         for i in range(0, len(lm), 3):
             x, y = int(lm[i] * w), int(lm[i + 1] * h)
             cv2.circle(img_rgb, (x, y), 6, (255, 0, 0), -1)
-        st.image(img_rgb, caption="Detected hand landmarks", use_container_width=True)
+        st.image(img_rgb, caption="Detected hand landmarks", width="stretch")
 
         # Bara Urdu harf aur confidence
         urdu_letter = LETTER_MAP.get(result["letter"], "?")
