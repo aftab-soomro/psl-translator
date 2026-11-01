@@ -60,3 +60,9 @@ A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai a
 
 **Sawal:** CV mein behtar, test mein kam, to kya karein?
 **Jawab:** Test mein sirf 562 images/16 signers hain, to ±1 point shor hai. Humne CV (aur signer-wise CV) se chunao kiya aur test ke numbers saaf report kiye. Test dekh kar faisla badalna cheating hoti.
+
+**Sawal:** Word Builder mein harfon ko yaad kaise rakha?
+**Jawab:** st.session_state se. Streamlit har click par script dobara chalata hai, session_state ki cheezein bachi rehti hain. Harfon ki list wahan rakhi hai.
+
+**Sawal:** Agar model galat harf bataye to?
+**Jawab:** Page top-3 predictions dikhata hai, user sahi wala chun kar jod sakta hai. Ye is liye zaroori hai ke Tuey/Daal jaisi milti julti jodiyon mein model confuse hota hai.

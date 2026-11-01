@@ -112,3 +112,10 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Faisla (CV se): v3 = models/best_model_v3_eng.joblib. Core aur v2 mehfooz.
 - Explain it simply: model ko sirf points dene ke bajaye "ungli kitni moori hai" aur "angootha index ko chhoo raha hai" jaisi seedhi baatein bhi di. CV mein 1.7 points behtar, test mein thora kam, farq chhota hai.
 - App test: predict.py ab v3 use karta hai. Notebook 08: 9/10 sahi (Tuey -> Daal 44.54%, warning nahi aayi; Suad sahi par 66.8%).
+
+## Step 119 (A1): Word Builder page, 2026-11-01
+- Kya: app/pages/1_Word_Builder.py (nayi page) aur src/letters.py (LETTER_MAP ki copy, abhi app.py mein bhi hai).
+- Kaise: st.session_state mein harfon ki list; webcam photo -> predict() -> top-3 mein se sahi harf chuno -> "Harf jodo". Backspace, Space, Clear buttons. Har harf ke baad camera key badal kar khali.
+- Test: manual, 3 harf jode, backspace aur clear theek chale.
+- Explain it simply: Streamlit har click par page dobara chalata hai, to normal variable bhool jata hai. session_state ek yaaddasht hai jo bachi rehti hai. Top-3 se chunne se model ki galti bhi theek ho sakti hai.
+- Baaqi safai: LETTER_MAP ab do jagah hai (app.py aur src/letters.py), Phase 14 mein app.py ko import par laga dena.
