@@ -7,3 +7,4 @@ seaborn
 joblib
 streamlit
 jupyter
+streamlit-webrtc==0.79.0

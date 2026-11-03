@@ -177,3 +177,5 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Test (61 videos): RF T=8 0.9672 (2 galtiyan, dono 2-Hay -> Aray); SVM/MLP 0.9836; KNN 0.9672; baseline 0.2459. Files: results/advanced_video_cv.csv, advanced_video_test.csv, models/dynamic_rf_T8.joblib.
 - Explain it simply: static harf ek tasveer se pehchante hain, dynamic harf mein haath hilta hai. Video ke frames ke landmarks ko ek lambi list bana kar (fixed lambai) model ko diya.
 - Limit: sirf 4 harf, har ek ki harkat bohat alag, is liye asan masla. Videos 1080p studio jaisi hain.
+
+Phase 12 live app: Qadam 1-2 done (FPS ~27), Qadam 3 shuru.
