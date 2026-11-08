@@ -4,7 +4,8 @@ live.py
 Live webcam ke liye:
   - LiveHandTracker : MediaPipe HandLandmarker VIDEO mode mein (frame se frame tracking)
   - LivePredictor   : 63 landmarks -> normalize -> static model -> top-3 harf
-  - WordState       : 1 second ek hi harf dikhane par harf khud jud jata hai (thread-safe)
+  - WordState       : probabilities ka average + 1 second ek hi harf par harf khud jud jata hai (thread-safe);
+                      Tuey/Daal jaisi jodi ko ek group maan kar user se poochta hai
   - DynamicRecorder : Tareeqa B - button, 3-2-1, phir 3 second recording -> dynamic model
   - draw_hand / draw_measurements : 21 points, lines aur faasle frame par draw karna
   - make_callback   : webrtc ke liye frame callback
@@ -14,6 +15,7 @@ import csv
 import math
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 import cv2
@@ -30,6 +32,16 @@ MODELS_DIR = ROOT / "models"
 MODEL_PATH = MODELS_DIR / "hand_landmarker.task"
 DYNAMIC_MODEL_PATH = MODELS_DIR / "dynamic_rf_T8.joblib"
 DYNAMIC_LOG = ROOT / "results" / "live_dynamic_log.csv"
+
+# Jo harf landmarks se alag nahi hote (notebook 16): model inhein ek group maanta hai aur user se poochta hai
+GROUPS = {"Tuey/Daal": ("Tuey", "Daal")}
+MEMBER_OF = {m: k for k, ms in GROUPS.items() for m in ms}
+
+
+def pick_names(pending):
+    """pending [(name, prob), ...] -> naam GROUPS wali tarteeb mein (taake 1 hamesha Tuey, 2 hamesha Daal rahe)."""
+    order = [m for ms in GROUPS.values() for m in ms]
+    return sorted((n for n, _ in pending), key=order.index)
 
 DYNAMIC_MAP = {"2-Hay": "ھ", "Alifmad": "آ", "Aray": "ڑ", "Jeem": "ج"}
 
@@ -89,6 +101,11 @@ class LivePredictor:
             return str(self.names[int(c)])
         return str(c)
 
+    def proba(self, lm):
+        """63 raw numbers -> {harf_ka_naam: probability} (saare 36)."""
+        p = self.model.predict_proba(normalize63(lm))[0]
+        return {self._name(c): float(v) for c, v in zip(self.model.classes_, p)}
+
     def top3(self, lm):
         """63 raw numbers -> [(harf_ka_naam, probability), ...] 3 tak."""
         proba = self.model.predict_proba(normalize63(lm))[0]
@@ -97,11 +114,18 @@ class LivePredictor:
 
 
 # --------------------------------------------------------------------------- word state
+def _top3(probs):
+    return sorted(probs.items(), key=lambda t: -t[1])[:3]
+
+
 class WordState:
     """
     Callback thread likhta hai, Streamlit page parhta hai, isliye har cheez lock ke andar.
 
-    Qaida: agar top harf min_conf se upar ho aur hold_seconds tak wahi rahe -> harf lafz mein jud jata hai.
+    Qaida: pichle smooth_seconds ki probabilities ka AVERAGE liya jata hai (har frame ka argmax nahi).
+    Agar top harf min_conf se upar ho aur hold_seconds tak wahi rahe -> harf lafz mein jud jata hai.
+    Agar top harf ek GROUP ho (Tuey/Daal) to harf nahi judta, `pending` mein dono aate hain aur
+    user button se chunta hai.
     Wahi harf dobara tab judega jab (a) haath hata kar wapas lao, ya (b) koi aur harf pehle jur jaye.
     Dynamic recording ke dauran (paused) static kuch nahi jodta; uske baad pehli static shakal lock hoti hai.
     """
@@ -113,18 +137,23 @@ class WordState:
         self.lock = threading.Lock()
         self.letters = []           # class names, jaise "Alif" ya "Jeem"; space ke liye " "
         self.top3 = []
+        self.top_label = ""         # video par dikhane ke liye ("Tuey/Daal ?" agar group)
+        self.top_conf = 0.0
+        self.pending = None         # [(name, prob), (name, prob)] jab user ko Tuey/Daal chunna ho
         self.has_hand = False
         self.fps = 0.0
         self.hold = 0.0             # 0..1
-        self.locked = None          # aakhri jura hua harf
+        self.locked = None          # aakhri jura hua harf (ya group)
         self.paused = False         # dynamic recording chal rahi ho to True
         self.wait_change = False    # dynamic ke baad: pehli static shakal na jode
+        self._win = deque()         # (waqt, probs) pichle smooth_seconds ke
         self._cand = None
         self._cand_start = 0.0
         self._flick = 0
         self._miss = 0
         # settings (page se badalti hain)
         self.hold_seconds = 1.0
+        self.smooth_seconds = 0.4
         self.min_conf = 0.60
         self.show_points = True
         self.show_dist = True
@@ -140,20 +169,31 @@ class WordState:
             self.locked = cur
             self.wait_change = False
 
-    def update(self, top3, now):
-        """top3 = [(name, prob), ...] ya None (haath nahi mila)."""
+    def _average(self, probs, now):
+        self._win.append((now, probs))
+        while self._win and now - self._win[0][0] > self.smooth_seconds:
+            self._win.popleft()
+        n = len(self._win)
+        return {k: sum(f[k] for _, f in self._win) / n for k in probs}
+
+    def update(self, probs, now):
+        """probs = {harf: probability} ya None (haath nahi mila)."""
         with self.lock:
             if self.paused:
-                self.has_hand = top3 is not None
-                self.top3 = top3 or []
+                self.has_hand = probs is not None
+                self.top3 = _top3(probs) if probs else []
+                self.top_label, self.top_conf = "", 0.0
+                self._win.clear()
                 self._reset_candidate()
                 return
 
-            if top3 is None:
+            if probs is None:
                 self.has_hand = False
                 self.top3 = []
+                self.top_label, self.top_conf = "", 0.0
                 self._miss += 1
                 if self._miss >= self.MISS_RESET:
+                    self._win.clear()
                     self._reset_candidate()
                     self.locked = None
                     self.wait_change = False
@@ -161,9 +201,18 @@ class WordState:
 
             self._miss = 0
             self.has_hand = True
-            self.top3 = top3
-            name, conf = top3[0]
-            cur = name if conf >= self.min_conf else None
+            avg = self._average(probs, now)
+            self.top3 = _top3(avg)
+
+            units = {}                                       # group ke members ke probabilities jod do
+            for n, p in avg.items():
+                k = MEMBER_OF.get(n, n)
+                units[k] = units.get(k, 0.0) + p
+            key = max(units, key=units.get)
+            conf = units[key]
+            self.top_label = key + " ?" if key in GROUPS else key
+            self.top_conf = conf
+            cur = key if conf >= self.min_conf else None
 
             if cur is None:                                  # yaqeen kam
                 self._flick += 1
@@ -184,19 +233,38 @@ class WordState:
                 return
             self.hold = min((now - self._cand_start) / self.hold_seconds, 1.0)
             if self.hold >= 1.0 and self._cand != self.locked:
-                self.letters.append(self._cand)
                 self.locked = self._cand
+                if self._cand in GROUPS:                     # model farq nahi kar sakta: user se pucho
+                    self.pending = sorted(((m, avg[m]) for m in GROUPS[self._cand]), key=lambda t: -t[1])
+                else:
+                    self.letters.append(self._cand)
+                    self.pending = None
 
     def after_dynamic(self, name=None):
         """Dynamic recording khatam: harf qubool hua ho to jodo, phir static ko agli shakal tak roko."""
         with self.lock:
             if name:
                 self.letters.append(name)
+                self.pending = None
+            self._win.clear()
             self._reset_candidate()
             self.locked = None
             self.wait_change = True
 
     # buttons
+    def add_letter(self, name):
+        """Button se (ya pending Tuey/Daal ka jawab): harf seedha jodo."""
+        with self.lock:
+            self.letters.append(name)
+            self.pending = None
+
+    def pick_pending(self, name):
+        """Camera ke upar wale 1/2 buttons: sirf tab kaam kare jab sach-much Tuey/Daal ka sawal pending ho."""
+        with self.lock:
+            if self.pending and name in [n for n, _ in self.pending]:
+                self.letters.append(name)
+                self.pending = None
+
     def add_space(self):
         with self.lock:
             if self.letters and self.letters[-1] != " ":
@@ -211,6 +279,7 @@ class WordState:
     def clear(self):
         with self.lock:
             self.letters.clear()
+            self.pending = None
             self.locked = None
 
     def snapshot(self):
@@ -218,6 +287,9 @@ class WordState:
             return {
                 "letters": list(self.letters),
                 "top3": list(self.top3),
+                "top_label": self.top_label,
+                "top_conf": self.top_conf,
+                "pending": list(self.pending) if self.pending else None,
                 "has_hand": self.has_hand,
                 "hold": self.hold,
                 "locked": self.locked,
@@ -420,8 +492,8 @@ def make_callback(state, tracker, predictor, recorder):
 
         lm = tracker.detect(img)                       # asli (bina ulte) frame par, jaise training mein
         state.paused = recorder.busy()                 # recording ke dauran static kuch nahi jodega
-        top3 = predictor.top3(lm) if lm is not None else None
-        state.update(top3, now)
+        probs = predictor.proba(lm) if lm is not None else None
+        state.update(probs, now)
 
         res = recorder.step(lm, w, h, now)
         if res is not None:
@@ -456,13 +528,17 @@ def make_callback(state, tracker, predictor, recorder):
             else:
                 cv2.putText(img, "Haath kam mila, dobara", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 165, 255), 3)
         else:
-            if top3:
-                name, conf = top3[0]
-                ok = conf >= state.min_conf
-                cv2.putText(img, f"{name} {conf * 100:.0f}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.2,
-                            (0, 255, 0) if ok else (0, 165, 255), 3)
             with state.lock:
-                hold = state.hold
+                label, conf, hold = state.top_label, state.top_conf, state.hold
+                pend = list(state.pending) if state.pending else None
+            if label:
+                ok = conf >= state.min_conf and "?" not in label
+                cv2.putText(img, f"{label} {conf * 100:.0f}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.2,
+                            (0, 255, 0) if ok else (0, 165, 255), 3)
+            if pend:
+                a, b = pick_names(pend)
+                cv2.putText(img, f"1 = {a}    2 = {b}", (10, h - 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 5)
+                cv2.putText(img, f"1 = {a}    2 = {b}", (10, h - 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 165, 255), 2)
             cv2.rectangle(img, (0, h - 14), (int(w * hold), h), (0, 255, 0), -1)   # hold meter
 
         state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
