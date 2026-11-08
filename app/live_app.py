@@ -9,15 +9,20 @@ import sys
 import time
 from pathlib import Path
 
+import joblib
+import pandas as pd
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 from src.letters import LETTER_MAP
-from src.live import LiveHandTracker, LivePredictor, WordState, make_callback
+from src.live import (DYNAMIC_LOG, DYNAMIC_MAP, DYNAMIC_MODEL_PATH, DynamicRecorder,
+                      LiveHandTracker, LivePredictor, WordState, make_callback)
 
 AUDIO_DIR = ROOT / "app" / "audio_cache"
+NONE_LABEL = "kuch nahi"
+TEST_OPTIONS = ["(test nahi)"] + list(DYNAMIC_MAP) + [NONE_LABEL]
 
 st.set_page_config(page_title="PSL Live Translator", page_icon="🖐️", layout="wide")
 
@@ -32,14 +37,24 @@ def get_predictor():
     return LivePredictor()
 
 
+@st.cache_resource
+def get_dynamic_model():
+    return joblib.load(DYNAMIC_MODEL_PATH)
+
+
 if "word" not in st.session_state:
     st.session_state.word = WordState()
+if "recorder" not in st.session_state:
+    st.session_state.recorder = DynamicRecorder(get_dynamic_model())
 state = st.session_state.word
+recorder = st.session_state.recorder
 
 
 def urdu(name):
     if name == " ":
         return " "
+    if name in DYNAMIC_MAP:
+        return DYNAMIC_MAP[name]
     v = LETTER_MAP.get(name, name)
     return v if isinstance(v, str) else str(v[0])
 
@@ -53,17 +68,28 @@ def speak(text):
     return f.read_bytes()
 
 
+def start_dynamic():
+    label = st.session_state.get("dyn_true", TEST_OPTIONS[0])
+    recorder.start(None if label == TEST_OPTIONS[0] else label)
+
+
 # ------------------------------------------------------------------ sidebar
 with st.sidebar:
     st.header("Settings")
+    st.subheader("Static letters")
     state.hold_seconds = st.slider("Harf jodne ke liye kitni der rukna hai (second)", 0.5, 2.5, 1.0, 0.1)
-    state.min_conf = st.slider("Kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
+    state.min_conf = st.slider("Static: kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
     state.show_points = st.checkbox("21 points aur lines dikhao", value=True)
     state.show_dist = st.checkbox("Faasle dikhao (peela: wrist→tip, neela: tip→tip)", value=True)
-    st.caption("Faasle palm ki lambai (wrist→point 9) ki unit mein hain, isliye haath door/qareeb karne se nahi badalte.")
+
+    st.subheader("Dynamic letters")
+    recorder.record_seconds = st.slider("Recording kitni lambi (second)", 2.0, 4.0, 3.0, 0.5)
+    recorder.min_conf = st.slider("Dynamic: kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
+    recorder.aspect_fix = st.checkbox("16:9 fix (training videos jaisa)", value=True)
+    st.caption("Training ke videos 3 second ke aur chaure (16:9) the. Right haath use karo.")
 
 st.title("🖐️ PSL Live Translator")
-st.caption("START dabao, haath camera ke saamne rakho. Harf 1 second tak ek hi rahe to khud lafz mein jud jayega.")
+st.caption("Static harf: 1 second ruko, khud jud jayega.  Dynamic harf (ج آ ڑ ھ): 🎬 button dabao, 3-2-1 ke baad gesture karo.")
 
 left, right = st.columns([3, 2])
 
@@ -71,7 +97,7 @@ with left:
     ctx = webrtc_streamer(
         key="psl-live",
         mode=WebRtcMode.SENDRECV,
-        video_frame_callback=make_callback(state, get_tracker(), get_predictor()),
+        video_frame_callback=make_callback(state, get_tracker(), get_predictor(), recorder),
         media_stream_constraints={"video": {"width": 640, "height": 480}, "audio": False},
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         async_processing=True,
@@ -97,6 +123,44 @@ with right:
             except Exception as e:                      # internet na ho to
                 st.warning(f"Awaaz nahi ban saki (internet?): {e}")
 
+    st.divider()
+    st.subheader("Dynamic harf")
+    st.selectbox("Test ke liye: asal mein kaunsa harf kar rahe ho?", TEST_OPTIONS, key="dyn_true",
+                 help=f"'{NONE_LABEL}' = jaan boojh kar koi dynamic harf NAHI (sirf haath hilao / static badlo).")
+    st.button("🎬 Dynamic harf record karo", on_click=start_dynamic, type="primary", use_container_width=True)
+    dyn_box = st.empty()
+
+with st.expander("📊 Dynamic test ka hisaab (results/live_dynamic_log.csv)"):
+    st.button("🔄 Taaza karo")
+    if DYNAMIC_LOG.exists():
+        df = pd.read_csv(DYNAMIC_LOG)
+        df["true"] = df["true"].fillna("")
+        df["pred"] = df["pred"].fillna("(haath kam)")
+        tl = df[df["true"].isin(list(DYNAMIC_MAP))].copy()
+        if len(tl):
+            tl["sahi"] = tl["true"] == tl["pred"]
+            tl["qubool"] = tl["conf"] >= recorder.min_conf
+            st.markdown(f"**Kul accuracy: {tl['sahi'].mean() * 100:.0f}%** ({tl['sahi'].sum()}/{len(tl)} koshishen)")
+            st.markdown(f"Jo qubool hue (yaqeen ≥ {recorder.min_conf:.2f}) unme sahi: "
+                        f"{tl[tl['qubool']]['sahi'].mean() * 100 if tl['qubool'].any() else 0:.0f}% "
+                        f"({tl['qubool'].sum()} qubool)")
+            st.dataframe(tl.groupby("true").agg(koshishen=("sahi", "size"), sahi=("sahi", "sum"),
+                                                avg_yaqeen=("conf", "mean")).round(2))
+            st.markdown("Confusion (row = asal, column = model ka jawab):")
+            st.dataframe(pd.crosstab(tl["true"], tl["pred"]))
+            if tl["aspect_fix"].nunique() > 1:
+                st.markdown("16:9 fix ke saath (1) aur baghair (0):")
+                st.dataframe(tl.groupby("aspect_fix")["sahi"].agg(["size", "mean"]).round(2))
+        nn = df[df["true"] == NONE_LABEL]
+        if len(nn):
+            bad = int((nn["conf"] >= recorder.min_conf).sum())
+            st.markdown(f"**'{NONE_LABEL}'**: {len(nn)} koshishon mein se **{bad}** baar fazool dynamic harf "
+                        f"jur jata (yaqeen ≥ {recorder.min_conf:.2f}). Average yaqeen: {nn['conf'].mean():.2f}")
+        if not len(tl) and not len(nn):
+            st.caption("Abhi test wali koi recording nahi. Upar asal harf chun kar record karo.")
+    else:
+        st.caption("Abhi koi recording nahi.")
+
 
 def render():
     s = state.snapshot()
@@ -108,12 +172,34 @@ def render():
         f"{word if word else '…'}</div>",
         unsafe_allow_html=True,
     )
-    if s["top3"]:
+    if recorder.busy():
+        cur_box.markdown("Abhi ka andaza:  \n*dynamic recording chal rahi hai…*")
+    elif s["top3"]:
         lines = [f"**{urdu(n)} {n}** — {p * 100:.0f}%" for n, p in s["top3"]]
         cur_box.markdown("Abhi ka andaza:  \n" + "  \n".join(lines))
     else:
         cur_box.markdown("Abhi ka andaza:  \n*haath nahi mila*")
     hold_box.progress(float(s["hold"]), text="Rukte raho… harf jurne wala hai" if 0 < s["hold"] < 1 else "Hold meter")
+
+    r = recorder.result
+    if r is None:
+        dyn_box.caption("Abhi koi dynamic recording nahi hui.")
+    elif not r["ok"]:
+        dyn_box.warning(f"Haath kam mila ({r['n_hand']}/{r['n_frames']} frames). Dobara koshish karo.")
+    else:
+        ok = r["conf"] >= recorder.min_conf
+        second = f" · dusra: {r['top2'][1][0]} {r['top2'][1][1] * 100:.0f}%" if len(r["top2"]) > 1 else ""
+        verdict = ""
+        if r["true"] in DYNAMIC_MAP:
+            verdict = " ✅ sahi" if r["pred"] == r["true"] else f" ❌ ghalat (asal: {r['true']})"
+        elif r["true"] == NONE_LABEL:
+            verdict = " ⚠️ fazool harf jur jata" if ok else " ✅ theek, nahi jura"
+        dyn_box.markdown(
+            f"Aakhri: **{urdu(r['pred'])} {r['pred']} {r['conf'] * 100:.0f}%**"
+            f"{'' if ok else ' (kam yaqeen, nahi jura)'}{second}{verdict}  \n"
+            f"<small>{r['n_frames']} frames, haath {r['n_hand']} mein</small>",
+            unsafe_allow_html=True,
+        )
 
 
 render()
