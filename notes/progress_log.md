@@ -179,3 +179,28 @@ Numbers hamesha `results/*.csv` se. Purane numbers kabhi delete nahi hote.
 - Limit: sirf 4 harf, har ek ki harkat bohat alag, is liye asan masla. Videos 1080p studio jaisi hain.
 
 Phase 12 live app: Qadam 1-2 done (FPS ~27), Qadam 3 shuru.
+
+Phase 12 live app: Qadam 1-3 code mukammal (details notes/live_app.md). Live testing baaki.
+
+## Step 127: Tuey/Daal pair ka analysis, 2026-11-09
+- Kya: notebooks/16_tuey_daal_pair.ipynb. Live app mein Tuey aur Daal ka mix hota tha; dekha ke ye masla model ka hai ya data ka.
+- Signer-wise CV (5-fold, train.csv, 2,165 rows, 36 class): 0.9524. Kul ghaltiyan 103.
+- Sab se bari ghalti Tuey <-> Daal: 46 / 103 (45%). Is pair ki accuracy sirf 0.617.
+- Specialist model (sirf Tuey vs Daal) bhi chance ke qareeb. Nateeja: landmarks mein in dono ka farq nahi, data ki had hai, model ki nahi.
+- Agar dono ko ek maan lein to CV ~97.4%.
+- Agle pairs: Ain <-> Ghain 8, Zuad <-> Zuey 7, Seen <-> Taay 5, Alif <-> Suad 4, Meem <-> Taay 3. Inki ghalti 30% se kam, group nahi banaya.
+- Taay ka kamzor hona confusion se nahi, haath detect na hone (band mutthi) se hai; CV recall Taay 0.92.
+- Files: results/advanced_confusion_pairs_cv.csv, results/advanced_per_letter_recall_cv.csv.
+- Faisla: live app mein Tuey/Daal ko ek group banaya; jab hold poora ho to user 1 ya 2 chunta hai (app mein "ٹ ya د?" buttons).
+- Explain it simply: do ishare landmarks mein itne milte hain ke koi model bhi unhe alag nahi kar sakta; is liye app khud poochti hai.
+- Limit: report mein likhna ke Tuey/Daal automatic nahi, user chunta hai.
+
+## Step 128: Live app: smoothing aur dynamic letters (Tareeqa B), 2026-11-09
+- Kya: src/live.py, app/live_app.py (details notes/live_app.md).
+- Static: 0.4 second ki probabilities ka average, hold 1 second, yaqeen >= 60%, Tuey/Daal group.
+- Dynamic: button -> 3-2-1 -> 3 second recording -> dynamic_rf_T8 (T=8, wahi features jo training mein). Live camera 4:3 hai jabke training videos 16:9, is liye y ka aspect_fix.
+- Live test ka log results/live_dynamic_log.csv mein khud likha jata hai (true, pred, conf, frames, haath wale frames).
+- Tareeqa A (motion se khud) abhi nahi; pehle B ka live accuracy dekhna.
+- Live accuracy: (abhi baaki)
+- Explain it simply: static harf ek pal ke liye rukna hota hai, dynamic ke liye button dabate hain taake app jaane ke ab harkat shuru hogi.
+- Limit: dynamic model ke paas "kuch nahi" class nahi, is liye galat harkat bhi kisi harf mein badal sakti hai; yaqeen 60% se kam ho to jawab nahi diya jata.

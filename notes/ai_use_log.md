@@ -32,3 +32,15 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-01 | Claude (chat) | Step 125 summary tables ka code aur app check ki list | Claude ne code likha, Aftab ne chalaya aur check kiya |
 
 | 2026-11-01 | Claude (chat) | Step 126 dynamic harf videos: design, feature code, CV/test | Claude ne code likha, Aftab ne chalaya aur check kiya |
+
+| 2026-11-03 to 2026-11-08 | Claude (chat) | Phase 12 Qadam 1-2: live camera (streamlit-webrtc), 21 points ka overlay, prediction aur auto lafz (1 second hold) ka design aur code | Claude ne code likha, Aftab ne chalaya, camera par test kiya aur masle bataye |
+
+| 2026-11-08 to 2026-11-09 | Claude (chat) | Step 127 Tuey/Daal pair ka analysis (notebook 16) aur app mein Tuey/Daal ka group + 1/2 choice buttons | Claude ne code likha, Aftab ne chalaya. Buttons ka layout Aftab ne bataya. Report mein tashreeh Aftab/Meraj khud likhenge |
+
+| 2026-11-09 | Claude (chat) | Step 128 dynamic harf live (Tareeqa A ka plan, Tareeqa B ka code: recording, aspect_fix, live test log) aur probability smoothing | Claude ne code likha, Aftab ne Tareeqa B chuna, chalaya aur test kiya |
+
+| 2026-11-09 | Claude (chat) | Live app ka UI redesign (ek screen dashboard, Settings/Hisaab popups) | Claude ne code likha aur browser mein test kiya; Aftab ne requirement di aur chalaya |
+
+| 2026-11-09 | Claude (chat) | Sidebar "Harf guide" (make_letter_guide.py se 36 photos + sidebar ka code) | Idea Aftab ka; Claude ne code likha, Aftab ne chalaya |
+
+| 2026-11-09 | Claude (chat) | Phase 14 safai: purani files legacy/ mein, requirements.txt pin, README, notes ki entries | Claude ne text/commands diye, Aftab ne chalaya aur commit kiye |
