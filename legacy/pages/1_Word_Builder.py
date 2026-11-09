@@ -11,7 +11,7 @@ from src.predict import predict
 from src.letters import LETTER_MAP
 
 LOW_CONFIDENCE = 0.40
-AUDIO_DIR = Path(__file__).resolve().parent.parent / "audio_cache"
+AUDIO_DIR = Path(__file__).resolve().parent.parent / "app" / "audio_cache"
 
 st.set_page_config(page_title="Word Builder", page_icon="✍️")
 st.title("Word Builder")
