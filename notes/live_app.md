@@ -33,7 +33,9 @@
 - aspect_fix: training videos 16:9 thin, live camera 4:3; y ko scale karke farq kam kiya (Settings mein band/on).
 - Kam az kam 5 frames mein haath mile, warna "haath nahi mila". Yaqeen < 60% ho to jawab nahi, sirf dikhaya jata hai.
 - Live test log: results/live_dynamic_log.csv (time, true, pred, conf, second, second_conf, n_frames, n_hand, aspect_fix, seconds). "Hisaab" mein accuracy aur galtiyan dikhti hain, "kuch nahi" wale test alag ginte hain.
-- Dynamic ka live accuracy: (abhi baaki, 4 harf x 5-10 baar + "kuch nahi" x 5-10)
+- Dynamic ka live accuracy (2026-11-09, mera apna webcam, ek signer, 3 s recording, default settings): 4 harf 56/56 sahi (2-Hay 10, Alifmad 15, Aray 10, Jeem 21). Yaqeen >= 0.60 par 39/56 (70%) qubool, qubool hue sab sahi. 'kuch nahi' ki 10 tries mein se 4 par fazool harf jura (avg yaqeen 0.55).
+- Threshold: results/live_dynamic_threshold.csv (0.5: asli 86% / fazool 50%; 0.6: 70% / 40%; 0.7: 59% / 10%). 'kuch nahi' ki sirf 10 tries hain, is liye 0.60 hi rakha (test par tune nahi kiya).
+- Log ki ghaltiyan: dropdown badalna bhool gaya; 1 try hata di (galat gesture kiya) aur 5 tries ka label time ke hisab se theek kiya.
 
 ## Tareeqa A (motion se khud pehchan): abhi nahi
 - Plan tha: motion meter -> haath ruka = static, hila = recording -> ruka = dynamic model (src/motion.py likha gaya, live app mein istemal nahi).

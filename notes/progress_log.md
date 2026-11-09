@@ -201,6 +201,6 @@ Phase 12 live app: Qadam 1-3 code mukammal (details notes/live_app.md). Live tes
 - Dynamic: button -> 3-2-1 -> 3 second recording -> dynamic_rf_T8 (T=8, wahi features jo training mein). Live camera 4:3 hai jabke training videos 16:9, is liye y ka aspect_fix.
 - Live test ka log results/live_dynamic_log.csv mein khud likha jata hai (true, pred, conf, frames, haath wale frames).
 - Tareeqa A (motion se khud) abhi nahi; pehle B ka live accuracy dekhna.
-- Live accuracy: (abhi baaki)
+- Live accuracy (apna webcam, ek signer): 4 dynamic harf 56/56 sahi; yaqeen >= 0.60 par 70% qubool. 'kuch nahi' par 4/10 fazool harf (model mein none class nahi). Details notes/live_app.md aur results/live_dynamic_threshold.csv.
 - Explain it simply: static harf ek pal ke liye rukna hota hai, dynamic ke liye button dabate hain taake app jaane ke ab harkat shuru hogi.
 - Limit: dynamic model ke paas "kuch nahi" class nahi, is liye galat harkat bhi kisi harf mein badal sakti hai; yaqeen 60% se kam ho to jawab nahi diya jata.
