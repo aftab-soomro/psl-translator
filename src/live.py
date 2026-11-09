@@ -475,8 +475,35 @@ def draw_measurements(bgr, landmarks):
 def _center_text(img, text, scale, color, thick):
     h, w = img.shape[:2]
     (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thick)
-    cv2.putText(img, text, ((w - tw) // 2, (h + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), thick + 6)
-    cv2.putText(img, text, ((w - tw) // 2, (h + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick)
+    cv2.putText(img, text, ((w - tw) // 2, (h + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), thick + 6, cv2.LINE_AA)
+    cv2.putText(img, text, ((w - tw) // 2, (h + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick, cv2.LINE_AA)
+
+
+# rang (BGR)
+C_GREEN, C_ORANGE, C_RED, C_WHITE, C_GRAY = (94, 197, 34), (11, 158, 245), (68, 68, 239), (245, 245, 245), (184, 163, 148)
+
+
+def _chip(img, text, x, y, fg=C_WHITE, scale=0.6, thick=1, pad=8, alpha=0.62):
+    """Aadhe-shaffaf kaale dabbe mein text (video par saaf parha jaye). Dabbe ka daayan kinara wapas karta hai."""
+    H, W = img.shape[:2]
+    (tw, th), base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thick)
+    x0, y0 = x, y
+    x1, y1 = min(x + tw + 2 * pad, W - 1), min(y + th + base + 2 * pad - 2, H - 1)
+    roi = img[y0:y1, x0:x1]
+    cv2.addWeighted(np.full_like(roi, (20, 20, 20)), alpha, roi, 1 - alpha, 0, dst=roi)
+    cv2.putText(img, text, (x0 + pad, y0 + pad + th), cv2.FONT_HERSHEY_SIMPLEX, scale, fg, thick, cv2.LINE_AA)
+    return x1
+
+
+def _bar(img, frac, color, h_bar=8, margin=12):
+    """Neeche patli patti (track + fill)."""
+    H, W = img.shape[:2]
+    y1, y0 = H - margin, H - margin - h_bar
+    x0, x1 = margin, W - margin
+    roi = img[y0:y1, x0:x1]
+    cv2.addWeighted(np.full_like(roi, (20, 20, 20)), 0.6, roi, 0.4, 0, dst=roi)
+    if frac > 0:
+        cv2.rectangle(img, (x0, y0), (x0 + int((x1 - x0) * min(frac, 1.0)), y1), color, -1)
 
 
 # --------------------------------------------------------------------------- webrtc callback
@@ -508,42 +535,43 @@ def make_callback(state, tracker, predictor, recorder):
             if state.show_dist:
                 draw_measurements(img, lm_view)
 
+        # --- upar: FPS aur haath ka status
+        state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
+        fps["t"] = now
+        x = _chip(img, f"FPS {state.fps:.0f}", 10, 10, C_GREEN if state.fps >= 10 else C_RED, scale=0.55)
+        _chip(img, "HAATH" if lm is not None else "haath nahi", x + 6, 10,
+              C_GREEN if lm is not None else C_GRAY, scale=0.55)
+
         phase, val = recorder.status(now)
         if phase == "countdown":
             _center_text(img, str(max(1, math.ceil(val))), 5.0, (0, 255, 255), 10)
-            cv2.putText(img, "Tayyar ho jao...", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
+            _chip(img, "Tayyar ho jao...", 10, 46, (0, 255, 255), scale=0.9, thick=2)
         elif phase == "recording":
-            cv2.circle(img, (30, 62), 12, (0, 0, 255), -1)
-            cv2.putText(img, f"REC {val:.1f} / {recorder.record_seconds:.1f}s", (50, 72),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
             frac = min(val / recorder.record_seconds, 1.0)
-            cv2.rectangle(img, (0, h - 14), (int(w * frac), h), (0, 0, 255), -1)
+            _chip(img, f"REC {val:.1f} / {recorder.record_seconds:.1f}s", 10, 46, C_RED, scale=0.9, thick=2)
+            _bar(img, frac, C_RED)
         elif phase == "result":
             r = recorder.result
             if r["ok"]:
                 ok = r["conf"] >= recorder.min_conf
                 text = f"{r['pred']} {r['conf'] * 100:.0f}%" + ("" if ok else " (kam yaqeen)")
-                cv2.putText(img, text, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.2,
-                            (0, 255, 0) if ok else (0, 165, 255), 3)
+                _chip(img, text, 10, 46, C_GREEN if ok else C_ORANGE, scale=0.9, thick=2)
             else:
-                cv2.putText(img, "Haath kam mila, dobara", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 165, 255), 3)
+                _chip(img, "Haath kam mila, dobara", 10, 46, C_ORANGE, scale=0.9, thick=2)
         else:
             with state.lock:
                 label, conf, hold = state.top_label, state.top_conf, state.hold
                 pend = list(state.pending) if state.pending else None
             if label:
-                ok = conf >= state.min_conf and "?" not in label
-                cv2.putText(img, f"{label} {conf * 100:.0f}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.2,
-                            (0, 255, 0) if ok else (0, 165, 255), 3)
+                group = "?" in label
+                ok = conf >= state.min_conf and not group
+                text = label if group else f"{label} {conf * 100:.0f}%"
+                _chip(img, text, 10, 46, C_GREEN if ok else C_ORANGE, scale=0.9, thick=2)
             if pend:
                 a, b = pick_names(pend)
-                cv2.putText(img, f"1 = {a}    2 = {b}", (10, h - 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 5)
-                cv2.putText(img, f"1 = {a}    2 = {b}", (10, h - 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 165, 255), 2)
-            cv2.rectangle(img, (0, h - 14), (int(w * hold), h), (0, 255, 0), -1)   # hold meter
+                _chip(img, f"1 = {a}      2 = {b}", 10, h - 62, C_ORANGE, scale=0.8, thick=2)
+            _bar(img, hold, C_GREEN)                   # hold meter
 
-        state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
-        fps["t"] = now
-        cv2.putText(img, f"FPS {state.fps:.0f}", (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
     return callback
