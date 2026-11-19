@@ -44,3 +44,6 @@ Record of every place AI assistants were used in this project (for the report's 
 | 2026-11-09 | Claude (chat) | Sidebar "Harf guide" (make_letter_guide.py se 36 photos + sidebar ka code) | Idea Aftab ka; Claude ne code likha, Aftab ne chalaya |
 
 | 2026-11-09 | Claude (chat) | Phase 14 safai: purani files legacy/ mein, requirements.txt pin, README, notes ki entries | Claude ne text/commands diye, Aftab ne chalaya aur commit kiye |
+| 2026-11-19 | Claude (chat) | Auto mode (dynamic harf bina button ke): code, synthetic test, aur screen-recording ka analysis | Idea/requirement Aftab ki (button wala tareeqa nahi chahiye tha); Claude ne code likha aur video dekh kar kamiyan batayin; Aftab ne apne webcam par chalaya aur test kiya. Auto mode default band hai, kamiyan abhi baaki hain |
+
+| 2026-11-19 | Claude (chat) | notebooks/00_project_overview.ipynb aur README mein dataset URL/credit | Claude ne text aur notebook likha; Aftab ne notebook chalaya aur commit kiya |
