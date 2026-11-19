@@ -1,89 +1,89 @@
 # Viva Q&A
 
-Mumkin sawal aur chhote saaf jawab. Har step ke baad izafa hota hai.
+Likely questions with short, simple answers. More are added after every step.
 
-## Dataset aur split
-**Q: Augmented images kyun use nahi kin?**
-A: Augmented images asli images ki nakal hain. Agar asli train me aur uski nakal test me jati, to model wahi cheez dobara dekhta aur test score jhoota (inflated) hota.
+## Dataset and split
+**Q: Why did you not use the augmented images?**
+A: Augmented images are copies of the real images. If the real image went to train and its copy went to test, the model would see the same thing again and the test score would be inflated.
 
-**Q: Signer-wise split kyun, random kyun nahi?**
-A: Ek insaan ke haath ki shape (size, ungliyon ki lambai) uski sari photos me same hoti hai. Random split me model insaan pehchan leta, sign nahi. Signer-wise me test par bilkul naye log hote hain, jaise asli use me.
+**Q: Why a signer-wise split and not a random split?**
+A: The shape of a person's hand (size, finger length) is the same in all their photos. With a random split the model would recognise the person, not the sign. With a signer-wise split the test set has completely new people, as in real use.
 
 ## Landmarks
-**Q: Tay ke 46.9% images fail kyun hue?**
-A: Tay band mutthi hai, ungliyan overlap karti hain. MediaPipe ko joints alag dikhai nahi dete, to haath detect nahi hota. Isi wajah se Tay ke sirf 43 samples bache.
+**Q: Why did 46.9% of the Tay images fail?**
+A: Tay is a closed fist and the fingers overlap. MediaPipe cannot see the joints separately, so the hand is not detected. For this reason only 43 Tay samples were left.
 
-**Q: Normalization kyun?**
-A: Wrist ko origin bana kar aur wrist se point 9 tak ki doori se divide kar ke haath ki position aur size ka asar khatam hota hai. Chhota aur bara haath same features dete hain.
+**Q: Why normalization?**
+A: We put the wrist at the origin and divide by the distance from the wrist to point 9. This removes the effect of the hand's position and size. A small hand and a big hand give the same features.
 
-## Models aur testing
-**Q: Pipeline me scaler kyun?**
-A: Taake scaler har CV fold me sirf training hisse par fit ho. Warna validation ki maloomat leak hoti.
+## Models and testing
+**Q: Why is the scaler inside the pipeline?**
+A: So the scaler is fitted only on the training part in every CV fold. Otherwise information from the validation data would leak.
 
-**Q: SVM best kyun chuna?**
-A: Tuning ke baad CV 92.19% (SVM) aur test par 95.02% accuracy / 94.82% macro F1, jo chaaron models me sabse behtar. MLP 93.77% test par.
+**Q: Why did you choose the SVM as the best model?**
+A: After tuning it had a CV accuracy of 92.19% (SVM) and on the test set 95.02% accuracy / 94.82% macro F1, the best of the four models. The MLP got 93.77% on the test set.
 
-**Q: Test set kab khula?**
-A: Sirf ek dafa, Phase 7 me. Models CV se chune gaye.
+**Q: When was the test set opened?**
+A: Only once, in Phase 7. The models were chosen with CV.
 
-**Q: Baseline ka kya faida?**
-A: Baseline (sab se zyada wali class) sirf ~3% deta hai. Is se pata chalta hai ke hamare 95% asli seekhne ka nateeja hain, qismat ka nahi.
+**Q: What is the use of the baseline?**
+A: The baseline (always the most frequent class) gives only ~3%. This shows that our 95% comes from real learning, not luck.
 
 ## Custom test (unseen signers)
-**Q: Dataset test ke ilawa apna test set kyun?**
-A: Dataset test ke signers bhi usi dataset ke the (wahi camera aur roshni). Classmates ki photos naye log, naya camera aur naya background hain. Dono scores ka farq batata hai ke model asli duniya me kitna chalega.
+**Q: Why do you have your own test set besides the dataset test set?**
+A: The signers of the dataset test set were also from the same dataset (the same camera and light). The classmates' photos are new people, a new camera and a new background. The difference between the two scores tells how well the model works in the real world.
 
-**Q: Custom test se model tune kyun nahi kiya?**
-A: Agar tune karte to ye test set bhi seekhne ka hissa ban jata aur score jhoota hota. Ye sirf aakhri imtihan hai.
+**Q: Why did you not tune the model with the custom test?**
+A: If we had, this test set would also become part of the learning and the score would be false. It is only the final exam.
 
-**Q: Classmates ki privacy ka kya?**
-A: Photos me sirf haath, chehra nahi. Folder gitignored hai, GitHub par nahi jata. Classmates sirf c01, c02 ID se likhe jate hain.
+**Q: What about the classmates' privacy?**
+A: The photos show only the hand, not the face. The folder is gitignored and does not go to GitHub. Classmates are written only by the IDs c01, c02.
 
 ## App
-**Q: Low-confidence warning har galti pakadti hai?**
-A: Nahi. Test me Tuey ko Daal 46.9% confidence se bata diya gaya, jabke threshold 40% hai, to warning nahi aayi. Warning sirf ishara hai, saboot nahi.
+**Q: Does the low-confidence warning catch every error?**
+A: No. In the test Tuey was called Daal with 46.9% confidence, while the threshold is 40%, so no warning appeared. The warning is only a hint, not a proof.
 
-**Q: Photo project folder me kyun nahi rakhi?**
-A: Photo me chehra hota hai. Isliye `tempfile` ke temporary folder me jati hai aur khud delete ho jati hai.
+**Q: Why did you not keep the photo in the project folder?**
+A: A photo contains a face. So it goes into a `tempfile` temporary folder and deletes itself.
 
-**Sawal:** Agar koi bina sign ke khuli hatheli dikhaye to model kya karega?
-**Jawab:** Wo phir bhi 36 harf mein se ek chunega, hamare test mein Bay 77%. Kyunki training mein "koi harf nahi" class nahi thi. Confidence threshold sirf unhe pakadta hai jahan model khud confuse ho.
+**Question:** If someone shows an open palm without any sign, what will the model do?
+**Answer:** It will still pick one of the 36 letters; in our test it was Bay 77%. This is because there was no "no letter" class in training. The confidence threshold catches only the cases where the model itself is confused.
 
-**Sawal:** Left hand ke liye kya kiya?
-**Jawab:** Train ke landmarks ke x ko ulta kar ke mirror copies bana ke training mein daali. Left hand right ka mirror image hai, is liye model dono seekh gaya. Left hand par accuracy 79.7% se 93.8% hui.
+**Question:** What did you do for the left hand?
+**Answer:** We flipped the x of the training landmarks to make mirror copies and added them to training. A left hand is the mirror image of a right hand, so the model learned both. The accuracy on the left hand went from 79.7% to 93.8%.
 
-**Sawal:** Test par right-hand score kyun gira jab CV mein barha tha?
-**Jawab:** Farq sirf lagbhag 7 images ka hai aur test mein sirf 16 signers hain, shayad shor. Faisla CV se hua tha, test dekh kar nahi badla. Dono nateeje report mein hain.
+**Question:** Why did the right-hand score fall on the test set when it had risen in CV?
+**Answer:** The difference is only about 7 images, and the test set has only 16 signers, so it is probably noise. The decision was made with CV and not changed after looking at the test set. Both results are in the report.
 
-**Sawal:** Naye features (angles/distances) kyun jode?
-**Jawab:** Raw coordinates model ko khud shape nikalni parti hai. Angles aur faasle seedhe batate hain ungli moori hai ya nahi, ye milte julte harfon (Tuey/Daal) mein madad kar sakta hai. CV mein har fold mein behtar aaye.
+**Question:** Why did you add the new features (angles/distances)?
+**Answer:** With raw coordinates the model has to find the shape by itself. Angles and distances tell it directly whether a finger is bent, which can help with similar letters (Tuey/Daal). They were better in every CV fold.
 
-**Sawal:** CV mein behtar, test mein kam, to kya karein?
-**Jawab:** Test mein sirf 562 images/16 signers hain, to ±1 point shor hai. Humne CV (aur signer-wise CV) se chunao kiya aur test ke numbers saaf report kiye. Test dekh kar faisla badalna cheating hoti.
+**Question:** Better in CV but lower on the test set, what do you do?
+**Answer:** The test set has only 562 images/16 signers, so +/-1 point is noise. We chose with CV (and signer-wise CV) and reported the test numbers clearly. Changing the decision after looking at the test set would be cheating.
 
-**Sawal:** Word Builder mein harfon ko yaad kaise rakha?
-**Jawab:** st.session_state se. Streamlit har click par script dobara chalata hai, session_state ki cheezein bachi rehti hain. Harfon ki list wahan rakhi hai.
+**Question:** How did the Word Builder remember the letters?
+**Answer:** With st.session_state. Streamlit runs the script again on every click, and things in session_state stay. The list of letters is kept there.
 
-**Sawal:** Agar model galat harf bataye to?
-**Jawab:** Page top-3 predictions dikhata hai, user sahi wala chun kar jod sakta hai. Ye is liye zaroori hai ke Tuey/Daal jaisi milti julti jodiyon mein model confuse hota hai.
+**Question:** What if the model gives a wrong letter?
+**Answer:** The page shows the top-3 predictions, and the user can pick the right one and add it. This is needed because the model gets confused on similar pairs like Tuey/Daal.
 
-**Sawal:** Agar demo ke waqt internet na ho to awaaz ka kya hoga?
-**Jawab:** Har bola hua lafz mp3 ki shakal mein app/audio_cache mein save hota hai. Demo ke lafz pehle bol kar cache kar lete hain, to bina internet bhi chalte hain.
+**Question:** What happens to the voice if there is no internet during the demo?
+**Answer:** Every spoken word is saved as an mp3 in app/audio_cache. We speak the demo words once beforehand to cache them, and then they work without internet.
 
-**Sawal:** Clustering ka tumhare project se kya taalluq hai?
-**Jawab:** Humne 36 harfon ke average shapes ko bina naam ke group kiya. Jin harfon ko hamara classifier confuse karta hai (Tuey/Daal, Zuad/Zuey, Ain/Ghain) wo clustering mein bhi qareeb nikle. To confusion ki wajah shapes ki samanta hai.
+**Question:** How is clustering related to your project?
+**Answer:** We grouped the average shapes of the 36 letters without their names. The letters that our classifier confuses (Tuey/Daal, Zuad/Zuey, Ain/Ghain) were also close in the clustering. So the reason for the confusion is the similarity of the shapes.
 
-**Sawal:** k-means mein k kaise chuna?
-**Jawab:** Elbow aur silhouette se dekha. Elbow mein saaf mor nahi tha, silhouette k=2 par oonchi (sirf Pay aur Kaf alag) aur baaqi ~0.3, yaani groups kamzor. Isliye koi ek "sahi k" nahi.
+**Question:** How did you choose k in k-means?
+**Answer:** We looked at the elbow and the silhouette. The elbow had no clear bend, and the silhouette was high at k=2 (only Pay and Kaf separate) and about 0.3 for the rest, which means weak groups. So there is no single "right k".
 
-**Sawal:** Haath ka kaun sa hissa sabse ahem nikla aur kyun?
-**Jawab:** Random Forest ke hisaab se ungliyon ke sire (fingertips), khaaskar middle aur thumb tip. Wajah ye ho sakti hai ke harf ke sign mein ungliyan sabse zyada alag hoti hain. Wrist ki importance 0 hai kyunki normalization mein wo origin hai.
+**Question:** Which part of the hand turned out to be the most important, and why?
+**Answer:** According to the Random Forest, the finger tips, especially the middle and thumb tips. The reason may be that in the signs of the letters the fingers differ the most. The importance of the wrist is 0 because it is the origin in the normalization.
 
-**Sawal:** Augmented images kyun nahi use ki shuru mein, aur baad mein kya hua?
-**Jawab:** Agar ek signer ki original train mein aur copy test mein ho to leakage hota. Baad mein sirf train signers ki copies jodi. CV mein farq +0.1 point tha, yaani lagbhag koi faida nahi, kyunki landmarks aur normalization roshni/zoom ka asar pehle hi hata dete hain.
+**Question:** Why did you not use the augmented images at the start, and what happened later?
+**Answer:** If the original of a signer were in train and a copy in test, there would be leakage. Later we added only the copies of train signers. In CV the difference was +0.1 point, so almost no benefit, because landmarks and normalization already remove the effect of light/zoom.
 
-**Sawal:** Dynamic harf ke liye alag model kyun?
-**Jawab:** Static harf ek tasveer se pehchane jate hain, dynamic harf mein haath ki harkat zaroori hai. Humne video ke frames ke landmarks nikal kar, fixed time steps mein baant kar, ek lambi feature list banayi.
+**Question:** Why a separate model for the dynamic letters?
+**Answer:** Static letters are recognised from one picture, but a dynamic letter needs the movement of the hand. We took the landmarks of the video frames, split them into a fixed number of time steps, and made one long feature list.
 
-**Sawal:** Videon mein 99% CV accuracy itni zyada kyun hai?
-**Jawab:** Sirf 4 harf hain aur unki harkat bohat alag hai. CV signer-wise thi (naye signers). Test par bhi 96.7% aaya, to leakage nahi.
+**Question:** Why is the CV accuracy on the videos as high as 99%?
+**Answer:** There are only 4 letters and their movements are very different. The CV was signer-wise (new signers). On the test set it was also 96.7%, so there is no leakage.

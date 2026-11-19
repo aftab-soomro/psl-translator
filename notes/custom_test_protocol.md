@@ -1,16 +1,16 @@
 # Custom Test Protocol (Phase 11: unseen signers)
 
-**Maqsad:** Dataset ke test (95.02% accuracy) me bhi signers dataset ke hi the (alag log, magar usi camera/roshni me). Yahan hum apne classmates ki photos par model check karte hain, jo bilkul naye log, naya camera aur naya background hain. Dono scores ka farq report me likhenge.
+**Goal:** The signers in the dataset test set (95.02% accuracy) were also from the dataset (different people, but the same camera and light). Here we check the model on photos of our classmates, who are completely new people with a new camera and a new background. We will write the difference between the two scores in the report.
 
-**Sunehri rule:** `data/custom_test/` ki photos se model ko **kabhi train, tune ya select nahi karna**. Ye sirf aakhri imtihan hai.
+**Golden rule:** Never train, tune or select the model with the photos in `data/custom_test/`. They are only the final exam.
 
-## 1. Ijazat (pehle, photo se pehle)
-Har classmate se kehna (zubani ya WhatsApp message, aur yahan likh lena kis ne haan kaha):
-- Photos sirf is ML project ke liye hain.
-- **Sirf haath frame me aayega, chehra nahi.** Photos GitHub, report ya slides me nahi jayengi.
-- Jab chahein, unki photos delete ho jayengi.
+## 1. Consent (before taking any photo)
+Tell each classmate (verbally or by WhatsApp message, and write down here who said yes):
+- The photos are only for this ML project.
+- **Only the hand will be in the frame, not the face.** The photos will not go to GitHub, the report or the slides.
+- Their photos will be deleted whenever they ask.
 
-| Classmate ID | Ijazat mili (haan/nahi) | Date | Right/left hand wale | Note |
+| Classmate ID | Consent given (yes/no) | Date | Right/left handed | Note |
 |---|---|---|---|---|
 | c01 | | | | |
 | c02 | | | | |
@@ -19,34 +19,34 @@ Har classmate se kehna (zubani ya WhatsApp message, aur yahan likh lena kis ne h
 | c05 | | | | |
 | c06 | | | | |
 
-(Asli naam yahan **mat** likhein, sirf c01, c02... Naam ka alag private note apne paas rakhein.)
+(Do **not** write real names here, only c01, c02... Keep a separate private note of the names.)
 
-## 2. Kitni photos
-- 5-6 classmates, har harf ki **2 photos** (3 ho sakein to behtar).
-- 36 harf x 2 photos = **72 photos per classmate** (kareeban 10-15 minute).
-- Total kareeban 360-430 photos.
+## 2. How many photos
+- 5-6 classmates, **2 photos** of each letter (3 is better if possible).
+- 36 letters x 2 photos = **72 photos per classmate** (about 10-15 minutes).
+- About 360-430 photos in total.
 
-## 3. Photo kaise lein (checklist)
-- [ ] **Seedha (right) haath**, ek haath, dusra haath frame se bahar.
-- [ ] Sada background (deewar, parda), peeche ki cheezein kam.
-- [ ] Roshni **saamne se**, haath ke peeche khidki/light na ho.
-- [ ] Poora haath aur kalai (wrist) frame me, haath frame ke beech me.
-- [ ] Camera haath ke level par, 30-50 cm door (laptop webcam jitni doori).
-- [ ] Chehra frame me **nahi**.
-- [ ] Har harf pehle dataset ki tasveer (`data/raw/<Harf>-Original/`) ya FESF dictionary (psl.org.pk) se dekh kar banayen.
-- [ ] Har harf ki 2 alag photos (haath thora hila kar dobara banayen), ek hi photo copy nahi.
-- [ ] Blur ya andheri photo dobara lein.
-- [ ] Agar classmate left-handed hai, tab bhi pehle right hand se lein; left-hand test baad me (Phase 12, C2).
+## 3. How to take the photos (checklist)
+- [ ] **Right hand**, one hand, the other hand out of the frame.
+- [ ] Plain background (wall, curtain), few things behind.
+- [ ] Light **from the front**, no window/light behind the hand.
+- [ ] The whole hand and the wrist in the frame, the hand in the middle of the frame.
+- [ ] Camera at the level of the hand, 30-50 cm away (the distance of a laptop webcam).
+- [ ] The face is **not** in the frame.
+- [ ] Look at each letter first in the dataset picture (`data/raw/<Letter>-Original/`) or the FESF dictionary (psl.org.pk) and then make the sign.
+- [ ] 2 different photos of each letter (move the hand a little and make it again), not a copy of the same photo.
+- [ ] Take blurry or dark photos again.
+- [ ] If a classmate is left-handed, still take the photos with the right hand first; the left-hand test comes later (Phase 12, C2).
 
-## 4. Photos kahan aur kis naam se
-Folder: `data/custom_test/<Harf>/` (folder pehle se bane hain, neeche table dekhein).
-File ka naam: `c<ID>_<Harf>_<number>.jpg`, jaise `c01_Lam_1.jpg`, `c01_Lam_2.jpg`, `c03_1-Hay_1.jpg`.
-- Extension chhota `.jpg` hona chahiye (Windows `.jpg` aur `.JPG` ko same maanta hai, ginti double hoti hai).
-- Phone ki `.jpeg` / `.heic` ho to `.jpg` me badal lein.
-- `data/custom_test/` gitignored hai, photos GitHub par nahi jayengi. **Kabhi `git add -f` na karein.**
+## 4. Where to put the photos and what to name them
+Folder: `data/custom_test/<Letter>/` (the folders already exist, see the table below).
+File name: `c<ID>_<Letter>_<number>.jpg`, for example `c01_Lam_1.jpg`, `c01_Lam_2.jpg`, `c03_1-Hay_1.jpg`.
+- The extension must be lowercase `.jpg` (Windows treats `.jpg` and `.JPG` as the same, so the count would be doubled).
+- If the phone gives `.jpeg` / `.heic`, convert it to `.jpg`.
+- `data/custom_test/` is gitignored, so the photos do not go to GitHub. **Never use `git add -f` on it.**
 
-## 5. Harf ki list (folder naam, Urdu, FESF naam)
-| # | Folder | Urdu | FESF naam | c01 mukammal | Note |
+## 5. List of letters (folder name, Urdu, FESF name)
+| # | Folder | Urdu | FESF name | c01 complete | Note |
 |---|---|---|---|---|---|
 | 1 | Alif | ا | Alif | | |
 | 2 | Bay | ب | Bay | | |
@@ -85,5 +85,5 @@ File ka naam: `c<ID>_<Harf>_<number>.jpg`, jaise `c01_Lam_1.jpg`, `c01_Lam_2.jpg
 | 35 | Cyeh | ی | Choti Yay | | |
 | 36 | Byeh | ے | Bari Yay | | |
 
-## 6. Jab photos tayar hon
-Mujhe batayein kitne classmates ki photos hain. Main check karunga (har harf, har classmate ki ginti, naam ka format), phir landmarks nikal kar model chalaunga (Steps 112-114).
+## 6. When the photos are ready
+When the photos are ready: check every letter, the count per classmate and the name format, then extract the landmarks and run the model (Steps 112-114).

@@ -84,13 +84,13 @@ limitation of landmark-based (vs. pixel-based) hand recognition for fist-like
 signs, and explains why "Tay" has a much higher failure rate (46.9%) than
 other classes.
 
-**Nateeja:** PCA se pata chalta hai k zyada tar classes 2D me kaafi overlap
-karti hain, jo tawaqqo ke mutabiq hai kyun k saare signs ek hi haath ki
-banawat se bante hain. Ek chhota cluster (dayen taraf) baqi sab se saaf
-alag hai, jo darust karta hai k kam se kam kuch harf shape ke lihaaz se
-kaafi mukhtalif hain. In 2 dimensions me sirf X% variance capture hoti hai,
-is liye ye sirf ek jhalak hai — asal model 63 dimensions par kaam karega,
-jahan farq aur bhi saaf hoga.
+**Result:** PCA shows that most classes overlap a lot in 2D,
+which is expected because all the signs are made with the same hand
+structure. One small cluster (on the right) is clearly separate from all the others,
+which confirms that at least some letters are very different in shape.
+In 2 dimensions only X% of the variance is captured,
+so this is only a glimpse — the real model works in 63 dimensions,
+where the difference will be even clearer.
 
 ## Best model (Step 77)
 

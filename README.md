@@ -17,7 +17,7 @@ Webcam frame -> MediaPipe HandLandmarker (21 points, 63 numbers)
 - **4 dynamic letters** (Jeem, Aray, Alifmad, 2-Hay): these need movement, so the user presses *Record*, a 3-2-1 countdown runs, the gesture is recorded for about 3 seconds and a Random Forest on 8 resampled time steps classifies it.
 - An optional **Auto mode** (Settings, off by default) tries to detect a dynamic gesture from hand motion instead of the Record button. It is experimental.
 - **Tuey / Daal** look almost identical in landmarks. When the model cannot separate them, the app shows two numbered buttons (or press keyboard `1` / `2`) and the user chooses.
-- The **Harf guide** in the sidebar shows one photo, the Urdu letter and the Roman name of every letter, so a new user can find a sign.
+- The **Letter guide** in the sidebar shows one photo, the Urdu letter and the Roman name of every letter, so a new user can find a sign.
 
 ## Setup
 
@@ -35,13 +35,13 @@ python -m pip install -r requirements.txt
 python -m streamlit run app/live_app.py
 ```
 
-Open the link Streamlit prints, press **START** and allow the camera in the browser. The first "Sunao" (speak) needs internet, because the audio is made with gTTS; it is cached afterwards. The camera stream also uses a public STUN server.
+Open the link Streamlit prints, press **START** and allow the camera in the browser. The first "Speak" needs internet, because the audio is made with gTTS; it is cached afterwards. The camera stream also uses a public STUN server.
 
 ## Project layout
 
 | Folder / file | What is in it |
 |---|---|
-| `app/live_app.py` | The single live page (camera, word builder, dynamic recording, Harf guide) |
+| `app/live_app.py` | The single live page (camera, word builder, dynamic recording, Letter guide) |
 | `app/assets/letters/` | One reference photo per letter for the sidebar guide |
 | `src/` | Model code: features, prediction, live tracking (`live.py`), dynamic letters (`video_features.py`), letter map (`letters.py`) |
 | `models/` | Trained models (static v3, dynamic RF) |
@@ -68,7 +68,7 @@ Do not re-run notebooks `01`, `02`, `04`, `13` and `15` unless you have the data
 
 - Static letters, 36 classes: **95.2%** signer-wise cross-validation accuracy (the test split was kept sealed and was not used to choose the model).
 - Dynamic letters (studio videos): 99.1% cross-validation, 96.7% on the held-out test videos.
-- Live dynamic-letter accuracy from a real webcam is logged in `results/live_dynamic_log.csv` and shown in the app under *Hisaab*.
+- Live dynamic-letter accuracy from a real webcam is logged in `results/live_dynamic_log.csv` and shown in the app under *Stats*.
 
 ## Known limitations
 
