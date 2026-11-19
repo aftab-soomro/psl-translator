@@ -32,6 +32,7 @@ MODELS_DIR = ROOT / "models"
 MODEL_PATH = MODELS_DIR / "hand_landmarker.task"
 DYNAMIC_MODEL_PATH = MODELS_DIR / "dynamic_rf_T8.joblib"
 DYNAMIC_LOG = ROOT / "results" / "live_dynamic_log.csv"
+AUTO_LOG = ROOT / "results" / "live_dynamic_auto_log.csv"      # Auto mode ke test
 
 # Jo harf landmarks se alag nahi hote (notebook 16): model inhein ek group maanta hai aur user se poochta hai
 GROUPS = {"Tuey/Daal": ("Tuey", "Daal")}
@@ -332,6 +333,30 @@ class DynamicRecorder:
         self.record_seconds = 3.0
         self.min_conf = 0.60
         self.aspect_fix = True
+        # --- Auto mode (button ke baghair): haath ki raftaar se gesture ki shuruaat / khatm pakadta hai
+        self.auto = False
+        self.auto_label = None           # test ke liye asal harf (page se), None = test nahi
+        self.v_hi = 0.60                 # is raftaar se oopar (palm length / second) => harkat shuru
+        self.v_lo = 0.30                 # is se neeche => haath ruka
+        self.min_dur = 0.7               # harkat kam az kam itni der (second), warna ignore
+        self.min_energy = 1.0            # harkat ki kul miqdar (palm length), warna ignore
+        self.still_end = 0.4             # itni der ruka rahe to gesture khatam
+        self.max_seg = 3.5               # gesture ki had (second)
+        self.cooldown = 1.5              # ek gesture ke baad itni der naya shuru nahi
+        self.speed = 0.0                 # smooth raftaar (video par dikhane ke liye)
+        self._reset_auto()
+
+    def _reset_auto(self):
+        self._hist = deque(maxlen=16)
+        self._pre = deque(maxlen=8)      # ~0.5 second pehle ke frames (shuruaat na kate)
+        self._a_above = None
+        self._a_frames = []
+        self._a_t0 = 0.0
+        self._a_last_move = 0.0
+        self._a_tick = 0.0
+        self._a_energy = 0.0
+        self._a_lost = None
+        self._cool_until = 0.0
 
     def start(self, true_label=None):
         """Button dabane par (Streamlit thread)."""
@@ -342,9 +367,10 @@ class DynamicRecorder:
             self._t0 = time.time()
             self.true_label = true_label
             self._frames = []
+            self._reset_auto()
 
     def busy(self):
-        return self.phase in ("countdown", "recording")
+        return self.phase in ("countdown", "recording", "auto")
 
     def status(self, now):
         with self.lock:
@@ -352,6 +378,8 @@ class DynamicRecorder:
                 return "countdown", self.COUNTDOWN - (now - self._t0)
             if self.phase == "recording":
                 return "recording", now - self._t0
+            if self.phase == "auto":
+                return "auto", now - self._a_t0
             if self.result is not None and now - self._result_t < self.SHOW_RESULT:
                 return "result", 0.0
             return "idle", 0.0
@@ -370,6 +398,13 @@ class DynamicRecorder:
 
     def step(self, lm, w, h, now):
         """Har frame par (callback thread). Recording khatam ho to result dict, warna None."""
+        with self.lock:
+            manual = self.phase in ("countdown", "recording")
+            if self.phase == "auto" and not self.auto:       # Auto mode beech mein band ho gaya
+                self.phase = "idle"
+                self._reset_auto()
+        if self.auto and not manual:
+            return self._auto_step(lm, w, h, now)
         with self.lock:
             if self.phase == "countdown":
                 if now - self._t0 >= self.COUNTDOWN:
@@ -400,6 +435,135 @@ class DynamicRecorder:
         except OSError:
             pass                                             # CSV khuli ho (Excel) to app na ruke
         return result
+
+    # ------------------------------------------------------------------ Auto mode
+    def _speed(self, lm, w, h, now):
+        """
+        Haath ki raftaar: 21 points ka faasla pichle ~0.2 second se, palm length ki unit mein, per second.
+        (Lagataar frames ke bajaye 0.2 s purane frame se milate hain, taake MediaPipe ki chhoti kampkampi
+        harkat na samjhi jaye.)
+        """
+        if lm is None:
+            self._hist.clear()
+            return None
+        p = np.asarray(lm, dtype=float).reshape(21, 3)[:, :2] * (w, h)
+        palm = float(np.linalg.norm(p[9] - p[0])) + 1e-6
+        self._hist.append((now, p))
+        ref = None
+        for t_old, p_old in self._hist:                  # sab se purani entry jo 0.25 s se nayi ho
+            if now - t_old <= 0.25:
+                ref = (t_old, p_old)
+                break
+        if ref is None or now - ref[0] < 0.12:
+            return None
+        dt = now - ref[0]
+        return float(np.linalg.norm(p - ref[1], axis=1).mean() / palm / dt)
+
+    def _sample(self, lm, w, h, now):
+        """~15 frame per second ki rate se ek row (haath na ho to NaN), warna None."""
+        if now < self._next_keep:
+            return None
+        self._next_keep = max(self._next_keep + self.SAMPLE_DT, now - self.SAMPLE_DT)
+        return self._fix(lm, w, h) if lm is not None else [np.nan] * 63
+
+    def _auto_step(self, lm, w, h, now):
+        v = self._speed(lm, w, h, now)
+        done = None
+        with self.lock:
+            self.speed = 0.6 * self.speed + 0.4 * (v if v is not None else 0.0)
+            sp = self.speed
+            row = self._sample(lm, w, h, now)
+
+            if self.phase == "idle":
+                if row is not None:
+                    self._pre.append(row)
+                if now < self._cool_until:
+                    return None
+                if sp > self.v_hi and lm is not None:
+                    if self._a_above is None:
+                        self._a_above = now
+                    if now - self._a_above >= 0.25:           # tez harkat 0.25 s se zyada chali: shuru
+                        self.phase = "auto"
+                        self._a_t0 = self._a_above
+                        self._a_frames = list(self._pre)
+                        self._a_last_move = now
+                        self._a_tick = now
+                        self._a_energy = 0.0
+                        self._a_lost = None
+                else:
+                    self._a_above = None
+                return None
+
+            if self.phase != "auto":
+                return None
+
+            # --- gesture chal raha hai
+            if row is not None:
+                self._a_frames.append(row)
+            self._a_energy += sp * max(now - self._a_tick, 0.0)
+            self._a_tick = now
+            if sp > self.v_lo:
+                self._a_last_move = now
+            if lm is None:
+                self._a_lost = self._a_lost or now
+            else:
+                self._a_lost = None
+            ended = (now - self._a_last_move >= self.still_end
+                     or now - self._a_t0 >= self.max_seg
+                     or (self._a_lost is not None and now - self._a_lost >= 0.6))
+            if not ended:
+                return None
+
+            frames, self._a_frames = self._a_frames, []
+            drop = int(max(0.0, now - self._a_last_move - 0.1) / self.SAMPLE_DT)   # aakhri ruka hua hissa kaato
+            if 0 < drop < len(frames) - 5:
+                frames = frames[:-drop]
+            dur = self._a_last_move - self._a_t0
+            energy = self._a_energy
+            label = self.auto_label
+            self.phase = "idle"
+            self._reset_auto()
+            self._cool_until = now + self.cooldown
+            done = (frames, dur, energy, label)
+
+        frames, dur, energy, label = done
+        arr = np.array(frames, dtype=float).reshape(-1, 63)
+        info = {"true": label, "aspect_fix": self.aspect_fix, "seconds": round(dur, 2)}
+        why = "ok"
+        if dur < self.min_dur:
+            why = "short"
+        elif energy < self.min_energy:
+            why = "weak"
+        if why == "ok":
+            result = self._classify(arr, info)
+            if not result["ok"]:
+                why = "nohand"
+        else:
+            result = {**info, "n_frames": len(arr), "n_hand": int((~np.isnan(arr[:, 0])).sum()),
+                      "ok": False, "pred": None, "conf": 0.0, "top2": []}
+        result["ignored"] = why if why != "ok" else None
+        result["why"] = why
+        with self.lock:
+            self.result = result
+            self._result_t = now
+        try:
+            self._log_auto(result, dur, energy)
+        except OSError:
+            pass
+        return result if why == "ok" else None
+
+    def _log_auto(self, r, dur, energy):
+        AUTO_LOG.parent.mkdir(parents=True, exist_ok=True)
+        new = not AUTO_LOG.exists()
+        second = r["top2"][1] if len(r["top2"]) > 1 else ("", float("nan"))
+        with open(AUTO_LOG, "a", newline="", encoding="utf-8") as f:
+            wr = csv.writer(f)
+            if new:
+                wr.writerow(["time", "true", "pred", "conf", "second", "second_conf", "n_frames", "n_hand",
+                             "duration", "energy", "why", "v_hi", "v_lo"])
+            wr.writerow([time.strftime("%Y-%m-%d %H:%M:%S"), r["true"] or "", r["pred"] or "", f"{r['conf']:.3f}",
+                         second[0], f"{second[1]:.3f}", r["n_frames"], r["n_hand"], f"{dur:.2f}", f"{energy:.2f}",
+                         r["why"], self.v_hi, self.v_lo])
 
     def _classify(self, arr, info):
         n_hand = int((~np.isnan(arr[:, 0])).sum())
@@ -539,20 +703,30 @@ def make_callback(state, tracker, predictor, recorder):
         state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
         fps["t"] = now
         x = _chip(img, f"FPS {state.fps:.0f}", 10, 10, C_GREEN if state.fps >= 10 else C_RED, scale=0.55)
-        _chip(img, "HAATH" if lm is not None else "haath nahi", x + 6, 10,
-              C_GREEN if lm is not None else C_GRAY, scale=0.55)
+        x = _chip(img, "HAATH" if lm is not None else "haath nahi", x + 6, 10,
+                  C_GREEN if lm is not None else C_GRAY, scale=0.55)
+        if recorder.auto:                              # raftaar dikhao taake thresholds set kar sako
+            fast = recorder.speed > recorder.v_hi
+            _chip(img, f"AUTO  v {recorder.speed:.1f}", x + 6, 10, C_ORANGE if fast else C_GRAY, scale=0.55)
 
         phase, val = recorder.status(now)
         if phase == "countdown":
             _center_text(img, str(max(1, math.ceil(val))), 5.0, (0, 255, 255), 10)
-            _chip(img, "Tayyar ho jao...", 10, 46, (0, 255, 255), scale=0.9, thick=2)
+            tag = f"  ->  {recorder.true_label}" if recorder.true_label else ""
+            _chip(img, "Tayyar ho jao" + tag, 10, 46, (0, 255, 255), scale=0.9, thick=2)
         elif phase == "recording":
             frac = min(val / recorder.record_seconds, 1.0)
-            _chip(img, f"REC {val:.1f} / {recorder.record_seconds:.1f}s", 10, 46, C_RED, scale=0.9, thick=2)
+            tag = f"  {recorder.true_label}" if recorder.true_label else ""
+            _chip(img, f"REC {val:.1f} / {recorder.record_seconds:.1f}s{tag}", 10, 46, C_RED, scale=0.9, thick=2)
             _bar(img, frac, C_RED)
+        elif phase == "auto":
+            _chip(img, f"AUTO REC {val:.1f}s", 10, 46, C_RED, scale=0.9, thick=2)
+            _bar(img, min(val / recorder.max_seg, 1.0), C_RED)
         elif phase == "result":
             r = recorder.result
-            if r["ok"]:
+            if r.get("ignored") in ("short", "weak"):
+                _chip(img, "ignore: chhoti harkat", 10, 46, C_GRAY, scale=0.8, thick=2)
+            elif r["ok"]:
                 ok = r["conf"] >= recorder.min_conf
                 text = f"{r['pred']} {r['conf'] * 100:.0f}%" + ("" if ok else " (kam yaqeen)")
                 _chip(img, text, 10, 46, C_GREEN if ok else C_ORANGE, scale=0.9, thick=2)

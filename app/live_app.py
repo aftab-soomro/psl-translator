@@ -24,7 +24,7 @@ from streamlit_webrtc import WebRtcMode, webrtc_streamer
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 from src.letters import LETTER_MAP
-from src.live import (DYNAMIC_LOG, DYNAMIC_MAP, DYNAMIC_MODEL_PATH, GROUPS, DynamicRecorder,
+from src.live import (AUTO_LOG, DYNAMIC_LOG, DYNAMIC_MAP, DYNAMIC_MODEL_PATH, GROUPS, DynamicRecorder,
                       LiveHandTracker, LivePredictor, WordState, make_callback, pick_names)
 
 AUDIO_DIR = ROOT / "app" / "audio_cache"
@@ -253,6 +253,14 @@ with right:
         recorder.min_conf = st.slider("Dynamic: kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
         recorder.aspect_fix = st.checkbox("16:9 fix (training videos jaisa)", value=True)
         st.caption("Dynamic ke liye right haath use karo; gesture poore 3 second mein phaila do.")
+        st.markdown("**Auto mode** (button ke baghair)")
+        recorder.auto = st.checkbox("Auto mode on", value=False,
+                                    help="Haath tez hilao to recording khud shuru, ruko to khatam. "
+                                         "Video par 'AUTO v ..' haath ki raftaar dikhata hai.")
+        recorder.v_hi = st.slider("Shuru: raftaar is se oopar", 0.2, 2.0, 0.6, 0.05)
+        recorder.v_lo = st.slider("Khatam: raftaar is se neeche", 0.1, 1.0, 0.3, 0.05)
+        recorder.min_dur = st.slider("Harkat kam az kam (second)", 0.3, 1.5, 0.7, 0.1)
+        recorder.min_energy = st.slider("Harkat ki kam az kam miqdar", 0.3, 3.0, 1.0, 0.1)
 
     with top_stats.popover("📊 Hisaab", use_container_width=True):
         st.markdown("**Dynamic test ka hisaab** (`results/live_dynamic_log.csv`)")
@@ -286,6 +294,24 @@ with right:
                 st.caption("Abhi test wali koi recording nahi. Dynamic card mein asal harf chun kar record karo.")
         else:
             st.caption("Abhi koi recording nahi.")
+        if AUTO_LOG.exists():
+            st.markdown("---")
+            st.markdown("**Auto mode ka hisaab** (`results/live_dynamic_auto_log.csv`)")
+            ad = pd.read_csv(AUTO_LOG)
+            ad["true"] = ad["true"].fillna("")
+            ad["pred"] = ad["pred"].fillna("")
+            st.markdown(f"Kul trigger: **{len(ad)}**; ignore (chhoti/kamzor harkat): "
+                        f"**{int(ad['why'].isin(['short', 'weak']).sum())}**")
+            used = ad[ad["why"] == "ok"]
+            at = used[used["true"].isin(list(DYNAMIC_MAP))]
+            if len(at):
+                st.markdown(f"Asli harf par sahi: **{(at['true'] == at['pred']).sum()}/{len(at)}**; "
+                            f"qubool (yaqeen ≥ {recorder.min_conf:.2f}): **{int((at['conf'] >= recorder.min_conf).sum())}**")
+                st.dataframe(pd.crosstab(at["true"], at["pred"]))
+            an = used[used["true"] == NONE_LABEL]
+            if len(an):
+                st.markdown(f"'{NONE_LABEL}' par trigger: **{len(an)}**, jin me fazool harf jura "
+                            f"(yaqeen ≥ {recorder.min_conf:.2f}): **{int((an['conf'] >= recorder.min_conf).sum())}**")
 
     # ---- Lafz card
     with container(border=True):
@@ -313,9 +339,10 @@ with right:
     with container(border=True):
         st.markdown("<div class='ctitle'>Dynamic harf &nbsp; ج آ ڑ ھ</div>", unsafe_allow_html=True)
         d1, d2 = st.columns([2, 3])
-        d1.selectbox("Asal harf (test ke liye)", TEST_OPTIONS, key="dyn_true", label_visibility="collapsed",
+        _sel = d1.selectbox("Asal harf (test ke liye)", TEST_OPTIONS, key="dyn_true", label_visibility="collapsed",
                      help=f"Test ke liye asal harf chuno. '{NONE_LABEL}' = jaan boojh kar koi dynamic harf NAHI "
                           f"(sirf haath hilao ya static badlo).")
+        recorder.auto_label = None if _sel == TEST_OPTIONS[0] else _sel
         d2.button("🎬 Record karo (3-2-1)", on_click=start_dynamic, type="primary", use_container_width=True)
         dyn_box = st.empty()
 
@@ -363,7 +390,12 @@ def live_html(s):
 def dyn_html():
     r = recorder.result
     if r is None:
-        return "<div class='dres'><small>Asal harf chuno, 🎬 dabao, 3-2-1 ke baad gesture karo.</small></div>"
+        hint = ("Auto mode on: dynamic gesture karo (haath tez hilao, phir ruko)." if recorder.auto
+                else "Asal harf chuno, 🎬 dabao, 3-2-1 ke baad gesture karo.")
+        return f"<div class='dres'><small>{hint}</small></div>"
+    if r.get("ignored") in ("short", "weak"):
+        what = "harkat chhoti thi" if r["ignored"] == "short" else "harkat kamzor thi"
+        return f"<div class='dres'>{chip('Ignore', GRAY)}<small>{what}, gesture dobara karo</small></div>"
     if not r["ok"]:
         return (f"<div class='dres'>{chip('Haath kam mila', ORANGE)}"
                 f"<small>{r['n_hand']}/{r['n_frames']} frames, dobara koshish karo</small></div>")
