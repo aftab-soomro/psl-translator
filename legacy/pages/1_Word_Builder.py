@@ -15,9 +15,9 @@ AUDIO_DIR = Path(__file__).resolve().parent.parent / "app" / "audio_cache"
 
 st.set_page_config(page_title="Word Builder", page_icon="✍️")
 st.title("Word Builder")
-st.caption("Har harf ka sign banao, photo lo, sahi harf chuno aur 'Harf jodo' dabao.")
+st.caption("Make the sign for each letter, take a photo, pick the right letter and press 'Add letter'.")
 
-# --- yaaddasht: harfon ki list aur camera ka counter ---
+# --- memory: list of letters and the camera counter ---
 if "letters" not in st.session_state:
     st.session_state.letters = []
 if "cam_n" not in st.session_state:
@@ -26,7 +26,7 @@ if "cam_n" not in st.session_state:
 
 def add_letter(letter):
     st.session_state.letters.append(letter)
-    st.session_state.cam_n += 1          # camera khali ho jaye, agla harf lene ke liye
+    st.session_state.cam_n += 1          # so the camera is empty, ready for the next letter
 
 
 def backspace():
@@ -43,7 +43,7 @@ def clear_all():
 
 
 def speak(text):
-    """Urdu lafz ki mp3 deta hai. Pehle cache dekhta hai, warna gTTS (internet chahiye)."""
+    """Returns the mp3 of an Urdu word. Checks the cache first, otherwise uses gTTS (needs internet)."""
     AUDIO_DIR.mkdir(exist_ok=True)
     f = AUDIO_DIR / (hashlib.md5(text.encode("utf-8")).hexdigest() + ".mp3")
     if f.exists():
@@ -53,11 +53,11 @@ def speak(text):
         return f.read_bytes(), None
     except Exception as e:
         if f.exists():
-            f.unlink()                   # adhoori file na bache
+            f.unlink()                   # so no half-written file is left
         return None, str(e)
 
 
-# --- abhi tak ka lafz (Urdu right-to-left) ---
+# --- the word so far (Urdu, right-to-left) ---
 spoken = "".join(st.session_state.letters).strip()
 st.markdown(
     f"<div dir='rtl' style='font-size:64px; text-align:center; padding:12px; "
@@ -70,18 +70,18 @@ c1.button("⌫ Backspace", on_click=backspace, width="stretch")
 c2.button("␣ Space", on_click=add_space, width="stretch")
 c3.button("🗑 Clear", on_click=clear_all, width="stretch")
 
-if st.button("🔊 Lafz sunao", disabled=not spoken, width="stretch"):
+if st.button("🔊 Speak word", disabled=not spoken, width="stretch"):
     audio, err = speak(spoken)
     if audio:
         st.audio(audio, format="audio/mp3", autoplay=True)
     else:
-        st.warning("Awaaz nahi ban saki. Internet chahiye, ya ye lafz pehle cache nahi hua.")
-        st.caption(f"Wajah: {err}")
+        st.warning("Could not make the audio. It needs internet, or this word was not cached before.")
+        st.caption(f"Reason: {err}")
 
 st.divider()
 
-# --- camera aur prediction ---
-snapshot = st.camera_input("Sign ki photo lo", key=f"cam_{st.session_state.cam_n}")
+# --- camera and prediction ---
+snapshot = st.camera_input("Take a photo of the sign", key=f"cam_{st.session_state.cam_n}")
 
 if snapshot is not None:
     with tempfile.TemporaryDirectory() as tmp:
@@ -97,14 +97,14 @@ if snapshot is not None:
         names = [name for name, _ in top3]
 
         if result["confidence"] < LOW_CONFIDENCE:
-            st.warning("Model ko pakka yaqeen nahi. Neeche se sahi harf chun lein ya dobara photo lein.")
+            st.warning("The model is not sure. Pick the right letter below or take the photo again.")
 
         choice = st.radio(
-            "Sahi harf chuno (pehla = model ka jawab):",
+            "Pick the right letter (first = model's answer):",
             names,
             format_func=lambda n: f"{LETTER_MAP.get(n, n)}   {n}   {probs[n]:.0%}",
             key=f"pick_{st.session_state.cam_n}",
             horizontal=True,
         )
-        st.button("➕ Harf jodo", on_click=add_letter, args=(LETTER_MAP.get(choice, choice),),
+        st.button("➕ Add letter", on_click=add_letter, args=(LETTER_MAP.get(choice, choice),),
                   type="primary", width="stretch")

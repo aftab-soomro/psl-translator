@@ -1,8 +1,8 @@
 """
 motion.py
 
-Haath ki raftaar (motion meter): 21 points ki average harkat, palm-lengths per second mein.
-Palm = wrist (0) se point 9 ki doori, isliye haath camera se door ho ya qareeb, number nahi badalta.
+Hand speed (motion meter): average movement of the 21 points, in palm lengths per second.
+Palm = distance from the wrist (0) to point 9, so the number does not change whether the hand is far from or close to the camera.
 """
 
 from collections import deque
@@ -14,8 +14,8 @@ class MotionMeter:
     def __init__(self, smooth=5, peak_window=2.0):
         self._prev = None
         self._prev_t = None
-        self._recent = deque(maxlen=smooth)    # aakhri 5 frames ka average (jitter kam)
-        self._history = deque()                # (waqt, speed) pichle peak_window second ke
+        self._recent = deque(maxlen=smooth)    # average of the last 5 frames (less jitter)
+        self._history = deque()                # (time, speed) for the last peak_window seconds
         self.peak_window = peak_window
 
     def _peak(self, now):
@@ -24,7 +24,7 @@ class MotionMeter:
         return max((s for _, s in self._history), default=0.0)
 
     def update(self, lm, w, h, now):
-        """lm = 63 raw numbers ya None. Wapis: (abhi ki speed, pichle 2 second ka peak)."""
+        """lm = 63 raw numbers or None. Returns: (current speed, peak of the last 2 seconds)."""
         if lm is None:
             self._prev = None
             self._recent.clear()

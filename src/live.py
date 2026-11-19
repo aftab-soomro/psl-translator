@@ -1,14 +1,14 @@
 """
 live.py
 
-Live webcam ke liye:
-  - LiveHandTracker : MediaPipe HandLandmarker VIDEO mode mein (frame se frame tracking)
-  - LivePredictor   : 63 landmarks -> normalize -> static model -> top-3 harf
-  - WordState       : probabilities ka average + 1 second ek hi harf par harf khud jud jata hai (thread-safe);
-                      Tuey/Daal jaisi jodi ko ek group maan kar user se poochta hai
-  - DynamicRecorder : Tareeqa B - button, 3-2-1, phir 3 second recording -> dynamic model
-  - draw_hand / draw_measurements : 21 points, lines aur faasle frame par draw karna
-  - make_callback   : webrtc ke liye frame callback
+For the live webcam:
+  - LiveHandTracker : MediaPipe HandLandmarker in VIDEO mode (frame-to-frame tracking)
+  - LivePredictor   : 63 landmarks -> normalize -> static model -> top-3 letters
+  - WordState       : average of probabilities + the letter is added by itself after 1 second on the same letter (thread-safe);
+                      treats a pair like Tuey/Daal as one group and asks the user
+  - DynamicRecorder : Method B - button, 3-2-1, then 3 seconds of recording -> dynamic model
+  - draw_hand / draw_measurements : draw 21 points, lines and distances on the frame
+  - make_callback   : frame callback for webrtc
 """
 
 import csv
@@ -25,22 +25,22 @@ import numpy as np
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
-from src.predict import MODEL_FILE          # static model badalna ho to sirf wahan badlo
+from src.predict import MODEL_FILE          # to change the static model, change it only there
 
 ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = ROOT / "models"
 MODEL_PATH = MODELS_DIR / "hand_landmarker.task"
 DYNAMIC_MODEL_PATH = MODELS_DIR / "dynamic_rf_T8.joblib"
 DYNAMIC_LOG = ROOT / "results" / "live_dynamic_log.csv"
-AUTO_LOG = ROOT / "results" / "live_dynamic_auto_log.csv"      # Auto mode ke test
+AUTO_LOG = ROOT / "results" / "live_dynamic_auto_log.csv"      # Auto mode tests
 
-# Jo harf landmarks se alag nahi hote (notebook 16): model inhein ek group maanta hai aur user se poochta hai
+# Letters that landmarks cannot separate (notebook 16): the model treats them as one group and asks the user
 GROUPS = {"Tuey/Daal": ("Tuey", "Daal")}
 MEMBER_OF = {m: k for k, ms in GROUPS.items() for m in ms}
 
 
 def pick_names(pending):
-    """pending [(name, prob), ...] -> naam GROUPS wali tarteeb mein (taake 1 hamesha Tuey, 2 hamesha Daal rahe)."""
+    """pending [(name, prob), ...] -> names in GROUPS order (so 1 is always Tuey and 2 is always Daal)."""
     order = [m for ms in GROUPS.values() for m in ms]
     return sorted((n for n, _ in pending), key=order.index)
 
@@ -54,7 +54,7 @@ TIPS = [4, 8, 12, 16, 20]
 
 # --------------------------------------------------------------------------- tracker
 class LiveHandTracker:
-    """Ek hi HandLandmarker jo live frames par chalta hai."""
+    """One HandLandmarker that runs on live frames."""
 
     def __init__(self):
         options = vision.HandLandmarkerOptions(
@@ -67,11 +67,11 @@ class LiveHandTracker:
         self._lock = threading.Lock()
 
     def detect(self, bgr):
-        """BGR frame -> 63 raw numbers [x0,y0,z0, ...] (extract_landmarks jaisa format), ya None."""
+        """BGR frame -> 63 raw numbers [x0,y0,z0, ...] (same format as extract_landmarks), or None."""
         rgb = np.ascontiguousarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         with self._lock:
-            ts = max(int(time.monotonic() * 1000), self._last_ts + 1)   # timestamp hamesha barhta rahe
+            ts = max(int(time.monotonic() * 1000), self._last_ts + 1)   # the timestamp must always increase
             self._last_ts = ts
             result = self._landmarker.detect_for_video(image, ts)
         if not result.hand_landmarks:
@@ -81,7 +81,7 @@ class LiveHandTracker:
 
 # --------------------------------------------------------------------------- static prediction
 def normalize63(lm):
-    """Raw 63 numbers -> (1, 63) normalized: wrist origin par, wrist->point 9 distance se divide."""
+    """Raw 63 numbers -> (1, 63) normalized: wrist at the origin, divided by the wrist->point 9 distance."""
     pts = np.asarray(lm, dtype=float).reshape(21, 3)
     pts = pts - pts[0]
     scale = np.linalg.norm(pts[9])
@@ -91,7 +91,7 @@ def normalize63(lm):
 
 
 class LivePredictor:
-    """Wahi static model jo app mein deploy hai (src/predict.py ka MODEL_FILE)."""
+    """The same static model that is deployed in the app (MODEL_FILE in src/predict.py)."""
 
     def __init__(self):
         self.model = joblib.load(MODELS_DIR / MODEL_FILE)
@@ -103,12 +103,12 @@ class LivePredictor:
         return str(c)
 
     def proba(self, lm):
-        """63 raw numbers -> {harf_ka_naam: probability} (saare 36)."""
+        """63 raw numbers -> {letter_name: probability} (all 36)."""
         p = self.model.predict_proba(normalize63(lm))[0]
         return {self._name(c): float(v) for c, v in zip(self.model.classes_, p)}
 
     def top3(self, lm):
-        """63 raw numbers -> [(harf_ka_naam, probability), ...] 3 tak."""
+        """63 raw numbers -> [(letter_name, probability), ...] up to 3."""
         proba = self.model.predict_proba(normalize63(lm))[0]
         idx = np.argsort(proba)[::-1][:3]
         return [(self._name(self.model.classes_[i]), float(proba[i])) for i in idx]
@@ -121,38 +121,38 @@ def _top3(probs):
 
 class WordState:
     """
-    Callback thread likhta hai, Streamlit page parhta hai, isliye har cheez lock ke andar.
+    The callback thread writes and the Streamlit page reads, so everything is inside a lock.
 
-    Qaida: pichle smooth_seconds ki probabilities ka AVERAGE liya jata hai (har frame ka argmax nahi).
-    Agar top harf min_conf se upar ho aur hold_seconds tak wahi rahe -> harf lafz mein jud jata hai.
-    Agar top harf ek GROUP ho (Tuey/Daal) to harf nahi judta, `pending` mein dono aate hain aur
-    user button se chunta hai.
-    Wahi harf dobara tab judega jab (a) haath hata kar wapas lao, ya (b) koi aur harf pehle jur jaye.
-    Dynamic recording ke dauran (paused) static kuch nahi jodta; uske baad pehli static shakal lock hoti hai.
+    Rule: the AVERAGE of the probabilities over the last smooth_seconds is used (not the argmax of each frame).
+    If the top letter is above min_conf and stays the same for hold_seconds -> the letter is added to the word.
+    If the top letter is a GROUP (Tuey/Daal), no letter is added; both go into `pending` and
+    the user picks with a button.
+    The same letter is added again only when (a) you remove your hand and bring it back, or (b) another letter is added first.
+    During a dynamic recording (paused), static adds nothing; after it, the first static shape is locked.
     """
 
-    MISS_RESET = 8      # itne frames lagataar haath na mile to "haath hata diya" maana jata hai
-    SWITCH_AFTER = 3    # itne frames lagataar dusra harf aaye tabhi candidate badalta hai (flicker se bachao)
+    MISS_RESET = 8      # if no hand is found for this many frames in a row, it counts as "hand removed"
+    SWITCH_AFTER = 3    # the candidate changes only if another letter appears for this many frames in a row (avoids flicker)
 
     def __init__(self):
         self.lock = threading.Lock()
-        self.letters = []           # class names, jaise "Alif" ya "Jeem"; space ke liye " "
+        self.letters = []           # class names, e.g. "Alif" or "Jeem"; " " for a space
         self.top3 = []
-        self.top_label = ""         # video par dikhane ke liye ("Tuey/Daal ?" agar group)
+        self.top_label = ""         # to show on the video ("Tuey/Daal ?" for a group)
         self.top_conf = 0.0
-        self.pending = None         # [(name, prob), (name, prob)] jab user ko Tuey/Daal chunna ho
+        self.pending = None         # [(name, prob), (name, prob)] when the user must choose Tuey/Daal
         self.has_hand = False
         self.fps = 0.0
         self.hold = 0.0             # 0..1
-        self.locked = None          # aakhri jura hua harf (ya group)
-        self.paused = False         # dynamic recording chal rahi ho to True
-        self.wait_change = False    # dynamic ke baad: pehli static shakal na jode
-        self._win = deque()         # (waqt, probs) pichle smooth_seconds ke
+        self.locked = None          # last added letter (or group)
+        self.paused = False         # True while a dynamic recording is running
+        self.wait_change = False    # after dynamic: do not add the first static shape
+        self._win = deque()         # (time, probs) for the last smooth_seconds
         self._cand = None
         self._cand_start = 0.0
         self._flick = 0
         self._miss = 0
-        # settings (page se badalti hain)
+        # settings (changed from the page)
         self.hold_seconds = 1.0
         self.smooth_seconds = 0.4
         self.min_conf = 0.60
@@ -166,7 +166,7 @@ class WordState:
 
     def _set_cand(self, cur, now):
         self._cand, self._cand_start, self._flick = cur, now, 0
-        if self.wait_change:                 # dynamic ke baad wali shakal: lock, jodo mat
+        if self.wait_change:                 # the shape after dynamic: lock it, do not add it
             self.locked = cur
             self.wait_change = False
 
@@ -178,7 +178,7 @@ class WordState:
         return {k: sum(f[k] for _, f in self._win) / n for k in probs}
 
     def update(self, probs, now):
-        """probs = {harf: probability} ya None (haath nahi mila)."""
+        """probs = {letter: probability} or None (no hand found)."""
         with self.lock:
             if self.paused:
                 self.has_hand = probs is not None
@@ -205,7 +205,7 @@ class WordState:
             avg = self._average(probs, now)
             self.top3 = _top3(avg)
 
-            units = {}                                       # group ke members ke probabilities jod do
+            units = {}                                       # add up the probabilities of the group members
             for n, p in avg.items():
                 k = MEMBER_OF.get(n, n)
                 units[k] = units.get(k, 0.0) + p
@@ -215,7 +215,7 @@ class WordState:
             self.top_conf = conf
             cur = key if conf >= self.min_conf else None
 
-            if cur is None:                                  # yaqeen kam
+            if cur is None:                                  # low confidence
                 self._flick += 1
                 if self._flick >= self.SWITCH_AFTER:
                     self._reset_candidate()
@@ -235,14 +235,14 @@ class WordState:
             self.hold = min((now - self._cand_start) / self.hold_seconds, 1.0)
             if self.hold >= 1.0 and self._cand != self.locked:
                 self.locked = self._cand
-                if self._cand in GROUPS:                     # model farq nahi kar sakta: user se pucho
+                if self._cand in GROUPS:                     # the model cannot tell them apart: ask the user
                     self.pending = sorted(((m, avg[m]) for m in GROUPS[self._cand]), key=lambda t: -t[1])
                 else:
                     self.letters.append(self._cand)
                     self.pending = None
 
     def after_dynamic(self, name=None):
-        """Dynamic recording khatam: harf qubool hua ho to jodo, phir static ko agli shakal tak roko."""
+        """Dynamic recording finished: add the letter if it was accepted, then hold static until the next shape."""
         with self.lock:
             if name:
                 self.letters.append(name)
@@ -254,13 +254,13 @@ class WordState:
 
     # buttons
     def add_letter(self, name):
-        """Button se (ya pending Tuey/Daal ka jawab): harf seedha jodo."""
+        """From a button (or the answer to a pending Tuey/Daal): add the letter directly."""
         with self.lock:
             self.letters.append(name)
             self.pending = None
 
     def pick_pending(self, name):
-        """Camera ke upar wale 1/2 buttons: sirf tab kaam kare jab sach-much Tuey/Daal ka sawal pending ho."""
+        """The 1/2 buttons above the camera: work only when a Tuey/Daal question is really pending."""
         with self.lock:
             if self.pending and name in [n for n, _ in self.pending]:
                 self.letters.append(name)
@@ -297,12 +297,12 @@ class WordState:
             }
 
 
-# --------------------------------------------------------------------------- dynamic (Tareeqa B)
+# --------------------------------------------------------------------------- dynamic (Method B)
 def features_from_landmarks(arr):
     """
-    Live landmarks (n, 63, NaN = haath nahi) -> (1, 520), BILKUL wahi function jo training mein chala.
-    video_features() andar video_landmarks(video) bulata hai; hum thori der ke liye usay
-    "ye lo, ye rahe landmarks" se badal dete hain. Baqi sab (normalize, wrist harkat, resample) wahi.
+    Live landmarks (n, 63, NaN = no hand) -> (1, 520), EXACTLY the same function that ran in training.
+    video_features() calls video_landmarks(video) inside; for a short time we replace it
+    with "here are the landmarks". Everything else (normalize, wrist movement, resample) is the same.
     """
     import src.video_features as vf
     original = vf.video_landmarks
@@ -315,8 +315,8 @@ def features_from_landmarks(arr):
 
 class DynamicRecorder:
     COUNTDOWN = 3.0
-    SAMPLE_DT = 1.0 / 15     # training: 30 FPS video ka har doosra frame = 15 frame per second
-    SHOW_RESULT = 2.5        # nateeja video par kitni der dikhe
+    SAMPLE_DT = 1.0 / 15     # training: every second frame of a 30 FPS video = 15 frames per second
+    SHOW_RESULT = 2.5        # how long the result stays on the video
 
     def __init__(self, model, log_path=DYNAMIC_LOG):
         self.model = model
@@ -329,26 +329,26 @@ class DynamicRecorder:
         self._next_keep = 0.0
         self._frames = []
         self._result_t = 0.0
-        # settings (page se badalti hain)
+        # settings (changed from the page)
         self.record_seconds = 3.0
         self.min_conf = 0.60
         self.aspect_fix = True
-        # --- Auto mode (button ke baghair): haath ki raftaar se gesture ki shuruaat / khatm pakadta hai
+        # --- Auto mode (no button): detects the start / end of a gesture from the hand speed
         self.auto = False
-        self.auto_label = None           # test ke liye asal harf (page se), None = test nahi
-        self.v_hi = 0.60                 # is raftaar se oopar (palm length / second) => harkat shuru
-        self.v_lo = 0.30                 # is se neeche => haath ruka
-        self.min_dur = 0.7               # harkat kam az kam itni der (second), warna ignore
-        self.min_energy = 1.0            # harkat ki kul miqdar (palm length), warna ignore
-        self.still_end = 0.4             # itni der ruka rahe to gesture khatam
-        self.max_seg = 3.5               # gesture ki had (second)
-        self.cooldown = 1.5              # ek gesture ke baad itni der naya shuru nahi
-        self.speed = 0.0                 # smooth raftaar (video par dikhane ke liye)
+        self.auto_label = None           # true letter for testing (from the page), None = no test
+        self.v_hi = 0.60                 # above this speed (palm length / second) => movement starts
+        self.v_lo = 0.30                 # below this => the hand has stopped
+        self.min_dur = 0.7               # minimum movement time (seconds), otherwise ignored
+        self.min_energy = 1.0            # total amount of movement (palm lengths), otherwise ignored
+        self.still_end = 0.4             # the gesture ends if the hand stays still this long
+        self.max_seg = 3.5               # maximum gesture length (seconds)
+        self.cooldown = 1.5              # no new gesture starts for this long after a gesture
+        self.speed = 0.0                 # smoothed speed (to show on the video)
         self._reset_auto()
 
     def _reset_auto(self):
         self._hist = deque(maxlen=16)
-        self._pre = deque(maxlen=8)      # ~0.5 second pehle ke frames (shuruaat na kate)
+        self._pre = deque(maxlen=8)      # frames from ~0.5 second earlier (so the start is not cut off)
         self._a_above = None
         self._a_frames = []
         self._a_t0 = 0.0
@@ -359,7 +359,7 @@ class DynamicRecorder:
         self._cool_until = 0.0
 
     def start(self, true_label=None):
-        """Button dabane par (Streamlit thread)."""
+        """When the button is pressed (Streamlit thread)."""
         with self.lock:
             if self.phase in ("countdown", "recording"):
                 return
@@ -386,8 +386,8 @@ class DynamicRecorder:
 
     def _fix(self, lm, w, h):
         """
-        Training videos chaure (16:9) the, webcam aksar 4:3 deta hai. MediaPipe ke x, y frame ki
-        chaurai/unchai se divide hote hain, isliye y ko itna scale karte hain jaise frame 16:9 hota.
+        Training videos were wide (16:9); a webcam often gives 4:3. MediaPipe's x, y are divided by the
+        frame's width/height, so we scale y as if the frame were 16:9.
         """
         out = list(lm)
         if self.aspect_fix:
@@ -397,10 +397,10 @@ class DynamicRecorder:
         return out
 
     def step(self, lm, w, h, now):
-        """Har frame par (callback thread). Recording khatam ho to result dict, warna None."""
+        """On every frame (callback thread). Returns a result dict when the recording ends, otherwise None."""
         with self.lock:
             manual = self.phase in ("countdown", "recording")
-            if self.phase == "auto" and not self.auto:       # Auto mode beech mein band ho gaya
+            if self.phase == "auto" and not self.auto:       # Auto mode was turned off in the middle
                 self.phase = "idle"
                 self._reset_auto()
         if self.auto and not manual:
@@ -416,7 +416,7 @@ class DynamicRecorder:
             if self.phase != "recording":
                 return None
 
-            if now >= self._next_keep:                       # ~15 frame per second rakho
+            if now >= self._next_keep:                       # keep ~15 frames per second
                 self._frames.append(self._fix(lm, w, h) if lm is not None else [np.nan] * 63)
                 self._next_keep = max(self._next_keep + self.SAMPLE_DT, now - self.SAMPLE_DT)
             if now - self._t0 < self.record_seconds:
@@ -433,15 +433,15 @@ class DynamicRecorder:
         try:
             self._log(result)
         except OSError:
-            pass                                             # CSV khuli ho (Excel) to app na ruke
+            pass                                             # so the app does not stop if the CSV is open (Excel)
         return result
 
     # ------------------------------------------------------------------ Auto mode
     def _speed(self, lm, w, h, now):
         """
-        Haath ki raftaar: 21 points ka faasla pichle ~0.2 second se, palm length ki unit mein, per second.
-        (Lagataar frames ke bajaye 0.2 s purane frame se milate hain, taake MediaPipe ki chhoti kampkampi
-        harkat na samjhi jaye.)
+        Hand speed: distance of the 21 points from ~0.2 second ago, in palm lengths, per second.
+        (We compare with a frame 0.2 s old instead of consecutive frames, so that small MediaPipe jitter
+        is not taken as movement.)
         """
         if lm is None:
             self._hist.clear()
@@ -450,7 +450,7 @@ class DynamicRecorder:
         palm = float(np.linalg.norm(p[9] - p[0])) + 1e-6
         self._hist.append((now, p))
         ref = None
-        for t_old, p_old in self._hist:                  # sab se purani entry jo 0.25 s se nayi ho
+        for t_old, p_old in self._hist:                  # the oldest entry that is newer than 0.25 s
             if now - t_old <= 0.25:
                 ref = (t_old, p_old)
                 break
@@ -460,7 +460,7 @@ class DynamicRecorder:
         return float(np.linalg.norm(p - ref[1], axis=1).mean() / palm / dt)
 
     def _sample(self, lm, w, h, now):
-        """~15 frame per second ki rate se ek row (haath na ho to NaN), warna None."""
+        """One row at ~15 frames per second (NaN if there is no hand), otherwise None."""
         if now < self._next_keep:
             return None
         self._next_keep = max(self._next_keep + self.SAMPLE_DT, now - self.SAMPLE_DT)
@@ -482,7 +482,7 @@ class DynamicRecorder:
                 if sp > self.v_hi and lm is not None:
                     if self._a_above is None:
                         self._a_above = now
-                    if now - self._a_above >= 0.25:           # tez harkat 0.25 s se zyada chali: shuru
+                    if now - self._a_above >= 0.25:           # fast movement lasted more than 0.25 s: start
                         self.phase = "auto"
                         self._a_t0 = self._a_above
                         self._a_frames = list(self._pre)
@@ -497,7 +497,7 @@ class DynamicRecorder:
             if self.phase != "auto":
                 return None
 
-            # --- gesture chal raha hai
+            # --- gesture in progress
             if row is not None:
                 self._a_frames.append(row)
             self._a_energy += sp * max(now - self._a_tick, 0.0)
@@ -515,7 +515,7 @@ class DynamicRecorder:
                 return None
 
             frames, self._a_frames = self._a_frames, []
-            drop = int(max(0.0, now - self._a_last_move - 0.1) / self.SAMPLE_DT)   # aakhri ruka hua hissa kaato
+            drop = int(max(0.0, now - self._a_last_move - 0.1) / self.SAMPLE_DT)   # cut the last still part
             if 0 < drop < len(frames) - 5:
                 frames = frames[:-drop]
             dur = self._a_last_move - self._a_t0
@@ -593,7 +593,7 @@ class DynamicRecorder:
 
 # --------------------------------------------------------------------------- drawing
 def draw_hand(bgr, landmarks):
-    """Frame par 21 points aur unki lines draw karta hai (fingertips bare aur laal)."""
+    """Draws the 21 points and their lines on the frame (fingertips are larger and red)."""
     h, w = bgr.shape[:2]
     pts = [(int(landmarks[3 * i] * w), int(landmarks[3 * i + 1] * h)) for i in range(21)]
     for a, b in CONNECTIONS:
@@ -613,9 +613,9 @@ def _label(bgr, text, p, color):
 
 def draw_measurements(bgr, landmarks):
     """
-    Faasle (palm length = wrist->point 9 ki unit mein):
-      peeli lines  = wrist se har fingertip tak (5)
-      neeli lines  = paas paas ki fingertips ke darmiyan (4)
+    Distances (in units of palm length = wrist->point 9):
+      yellow lines = from the wrist to each fingertip (5)
+      blue lines   = between neighbouring fingertips (4)
     """
     h, w = bgr.shape[:2]
     pts = np.array([(landmarks[3 * i] * w, landmarks[3 * i + 1] * h) for i in range(21)])
@@ -630,9 +630,9 @@ def draw_measurements(bgr, landmarks):
         _label(bgr, f"{np.linalg.norm(pts[a] - pts[b]) / palm:.1f}", mid, color)
 
     for t in TIPS:
-        seg(0, t, (0, 255, 255))            # peela (BGR)
+        seg(0, t, (0, 255, 255))            # yellow (BGR)
     for a, b in zip(TIPS[:-1], TIPS[1:]):
-        seg(a, b, (255, 200, 0))            # neela
+        seg(a, b, (255, 200, 0))            # blue
     return bgr
 
 
@@ -643,12 +643,12 @@ def _center_text(img, text, scale, color, thick):
     cv2.putText(img, text, ((w - tw) // 2, (h + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick, cv2.LINE_AA)
 
 
-# rang (BGR)
+# colors (BGR)
 C_GREEN, C_ORANGE, C_RED, C_WHITE, C_GRAY = (94, 197, 34), (11, 158, 245), (68, 68, 239), (245, 245, 245), (184, 163, 148)
 
 
 def _chip(img, text, x, y, fg=C_WHITE, scale=0.6, thick=1, pad=8, alpha=0.62):
-    """Aadhe-shaffaf kaale dabbe mein text (video par saaf parha jaye). Dabbe ka daayan kinara wapas karta hai."""
+    """Text in a half-transparent black box (easy to read on the video). Returns the right edge of the box."""
     H, W = img.shape[:2]
     (tw, th), base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thick)
     x0, y0 = x, y
@@ -660,7 +660,7 @@ def _chip(img, text, x, y, fg=C_WHITE, scale=0.6, thick=1, pad=8, alpha=0.62):
 
 
 def _bar(img, frac, color, h_bar=8, margin=12):
-    """Neeche patli patti (track + fill)."""
+    """A thin bar at the bottom (track + fill)."""
     H, W = img.shape[:2]
     y1, y0 = H - margin, H - margin - h_bar
     x0, x1 = margin, W - margin
@@ -681,8 +681,8 @@ def make_callback(state, tracker, predictor, recorder):
         now = time.time()
         h, w = img.shape[:2]
 
-        lm = tracker.detect(img)                       # asli (bina ulte) frame par, jaise training mein
-        state.paused = recorder.busy()                 # recording ke dauran static kuch nahi jodega
+        lm = tracker.detect(img)                       # on the original (not mirrored) frame, as in training
+        state.paused = recorder.busy()                 # static adds nothing during a recording
         probs = predictor.proba(lm) if lm is not None else None
         state.update(probs, now)
 
@@ -691,21 +691,21 @@ def make_callback(state, tracker, predictor, recorder):
             accepted = res["ok"] and res["conf"] >= recorder.min_conf
             state.after_dynamic(res["pred"] if accepted else None)
 
-        img = cv2.flip(img, 1)                         # sirf dikhane ke liye shishe jaisa
+        img = cv2.flip(img, 1)                         # mirror view, for display only
         if lm is not None:
-            lm_view = [1.0 - v if i % 3 == 0 else v for i, v in enumerate(lm)]   # x ulta
+            lm_view = [1.0 - v if i % 3 == 0 else v for i, v in enumerate(lm)]   # flip x
             if state.show_points:
                 draw_hand(img, lm_view)
             if state.show_dist:
                 draw_measurements(img, lm_view)
 
-        # --- upar: FPS aur haath ka status
+        # --- top: FPS and hand status
         state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
         fps["t"] = now
         x = _chip(img, f"FPS {state.fps:.0f}", 10, 10, C_GREEN if state.fps >= 10 else C_RED, scale=0.55)
-        x = _chip(img, "HAATH" if lm is not None else "haath nahi", x + 6, 10,
+        x = _chip(img, "HAND" if lm is not None else "no hand", x + 6, 10,
                   C_GREEN if lm is not None else C_GRAY, scale=0.55)
-        if recorder.auto:                              # raftaar dikhao taake thresholds set kar sako
+        if recorder.auto:                              # show the speed so you can set the thresholds
             fast = recorder.speed > recorder.v_hi
             _chip(img, f"AUTO  v {recorder.speed:.1f}", x + 6, 10, C_ORANGE if fast else C_GRAY, scale=0.55)
 
@@ -713,7 +713,7 @@ def make_callback(state, tracker, predictor, recorder):
         if phase == "countdown":
             _center_text(img, str(max(1, math.ceil(val))), 5.0, (0, 255, 255), 10)
             tag = f"  ->  {recorder.true_label}" if recorder.true_label else ""
-            _chip(img, "Tayyar ho jao" + tag, 10, 46, (0, 255, 255), scale=0.9, thick=2)
+            _chip(img, "Get ready" + tag, 10, 46, (0, 255, 255), scale=0.9, thick=2)
         elif phase == "recording":
             frac = min(val / recorder.record_seconds, 1.0)
             tag = f"  {recorder.true_label}" if recorder.true_label else ""
@@ -725,13 +725,13 @@ def make_callback(state, tracker, predictor, recorder):
         elif phase == "result":
             r = recorder.result
             if r.get("ignored") in ("short", "weak"):
-                _chip(img, "ignore: chhoti harkat", 10, 46, C_GRAY, scale=0.8, thick=2)
+                _chip(img, "ignored: movement too short", 10, 46, C_GRAY, scale=0.8, thick=2)
             elif r["ok"]:
                 ok = r["conf"] >= recorder.min_conf
-                text = f"{r['pred']} {r['conf'] * 100:.0f}%" + ("" if ok else " (kam yaqeen)")
+                text = f"{r['pred']} {r['conf'] * 100:.0f}%" + ("" if ok else " (low confidence)")
                 _chip(img, text, 10, 46, C_GREEN if ok else C_ORANGE, scale=0.9, thick=2)
             else:
-                _chip(img, "Haath kam mila, dobara", 10, 46, C_ORANGE, scale=0.9, thick=2)
+                _chip(img, "Few hand frames, try again", 10, 46, C_ORANGE, scale=0.9, thick=2)
         else:
             with state.lock:
                 label, conf, hold = state.top_label, state.top_conf, state.hold

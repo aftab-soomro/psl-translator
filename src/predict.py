@@ -1,8 +1,8 @@
 """
 predict.py
 
-Poora pipeline ek function me: image -> landmarks -> normalize -> prediction.
-Streamlit app sirf isi predict() function ko call karegi.
+The whole pipeline in one function: image -> landmarks -> normalize -> prediction.
+The Streamlit app only calls this predict() function.
 """
 
 from pathlib import Path
@@ -20,7 +20,7 @@ _class_names = None
 
 
 def _load_model():
-    """Model aur class names sirf ek dafa load hote hain (pehli call par)."""
+    """The model and class names are loaded only once (on the first call)."""
     global _model, _class_names
     if _model is None:
         _model = joblib.load(MODELS_DIR / MODEL_FILE)
@@ -30,18 +30,18 @@ def _load_model():
 
 def predict(image_path):
     """
-    Ek image se harf predict karta hai.
+    Predicts a letter from one image.
 
     Args:
-        image_path: image file ka path (str ya Path)
+        image_path: path of the image file (str or Path)
 
     Returns:
         dict with:
-            "letter": predicted harf ka naam (str), ya None agar haath na mile
-            "confidence": us harf ki probability (0-1), ya None
-            "probabilities": saare 36 harfon ki probabilities ka dict, ya None
-            "landmarks": 63 raw landmark numbers ki list, ya None
-            "error": agar kuch ghalat hua to wajah (str), warna None
+            "letter": name of the predicted letter (str), or None if no hand is found
+            "confidence": probability of that letter (0-1), or None
+            "probabilities": dict of the probabilities of all 36 letters, or None
+            "landmarks": list of the 63 raw landmark numbers, or None
+            "error": the reason (str) if something went wrong, otherwise None
     """
     model, class_names = _load_model()
 
@@ -52,11 +52,11 @@ def predict(image_path):
             "confidence": None,
             "probabilities": None,
             "landmarks": None,
-            "error": "Haath nahi mila. Saaf roshni me, ek haath camera ke saamne rakhein.",
+            "error": "No hand found. Hold one hand in front of the camera in good light.",
         }
 
     normalized = normalize_landmarks(raw_landmarks)
-    features = normalized.reshape(1, -1)  # model ek "batch" expect karta hai, isliye 2D shape
+    features = normalized.reshape(1, -1)  # the model expects a "batch", so a 2D shape
 
     predicted_letter = model.predict(features)[0]
     probabilities = model.predict_proba(features)[0]

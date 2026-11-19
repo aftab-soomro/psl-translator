@@ -1,11 +1,11 @@
 """
 live_app.py  -  PSL Live Translator (single page)
 
-Chalane ka tareeqa:  python -m streamlit run app/live_app.py
+How to run:  python -m streamlit run app/live_app.py
 
-Layout (ek hi screen, scroll nahi):
-  left  : camera ke upar Tuey/Daal ke 1/2 buttons ki khali jagah, phir live camera
-  right : header (Settings, Hisaab) / Lafz card / Live pehchaan card / Dynamic harf card
+Layout (one screen, no scrolling):
+  left  : space above the camera for the Tuey/Daal 1/2 buttons, then the live camera
+  right : header (Settings, Stats) / Word card / Live recognition card / Dynamic letter card
 """
 
 import base64
@@ -29,22 +29,22 @@ from src.live import (AUTO_LOG, DYNAMIC_LOG, DYNAMIC_MAP, DYNAMIC_MODEL_PATH, GR
 
 AUDIO_DIR = ROOT / "app" / "audio_cache"
 GUIDE_DIR = ROOT / "app" / "assets" / "letters"
-NONE_LABEL = "kuch nahi"
-TEST_OPTIONS = ["(test nahi)"] + list(DYNAMIC_MAP) + [NONE_LABEL]
+NONE_LABEL = "no gesture"
+TEST_OPTIONS = ["(no test)"] + list(DYNAMIC_MAP) + [NONE_LABEL]
 
 GREEN, ORANGE, BLUE, RED, GRAY = "#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#94a3b8"
 
 st.set_page_config(page_title="PSL Live Translator", page_icon="🖐️", layout="wide",
                    initial_sidebar_state="expanded")
 
-# ------------------------------------------------------------------ style (dark aur light dono mein theek)
+# ------------------------------------------------------------------ style (works in both dark and light themes)
 st.markdown("""
 <style>
 .block-container { padding-top: 3rem; padding-bottom: 0.3rem; max-width: 1560px; }
 [data-testid="stVerticalBlock"] { gap: 0.55rem; }
 [data-testid="stVerticalBlockBorderWrapper"] { padding: 0.15rem 0.2rem; }
 
-/* Harf guide (sidebar) */
+/* Letter guide (sidebar) */
 .gtitle { font-size: 18px; font-weight: 700; margin: 0; }
 .gsub { font-size: 12px; opacity: .65; margin: 2px 0 10px 0; }
 .ggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -60,7 +60,7 @@ st.markdown("""
 .st-key-leftcol { max-width: 680px; }
 .st-key-choicebar { min-height: 66px; }
 
-/* Tuey/Daal ke do buttons, top-left par chota number */
+/* The two Tuey/Daal buttons, with a small number at the top left */
 .st-key-pick1 button, .st-key-pick2 button {
     position: relative; height: 58px; font-size: 24px; font-weight: 600; border-width: 2px;
 }
@@ -171,7 +171,7 @@ def chip(text, color, dot=True):
 def container(**kw):
     try:
         return st.container(**kw)
-    except TypeError:                    # purana Streamlit: key / border ka option nahi
+    except TypeError:                    # older Streamlit: no key / border option
         kw.pop("key", None)
         kw.pop("border", None)
         return st.container()
@@ -179,7 +179,7 @@ def container(**kw):
 
 @st.cache_data(show_spinner=False)
 def guide_cards_html():
-    """Sidebar ke liye har harf ka chota card: photo + Urdu harf + Roman naam."""
+    """A small card for each letter in the sidebar: photo + Urdu letter + Roman name."""
     cards = []
     for name in LETTER_MAP:
         if name in DYNAMIC_MAP:
@@ -191,18 +191,18 @@ def guide_cards_html():
             ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
             pic = "<img src='data:image/jpeg;base64,%s'>" % base64.b64encode(buf).decode()
         else:
-            pic = "<div class='gph'>photo nahi</div>"
+            pic = "<div class='gph'>no photo</div>"
         cards.append(f"<div class='gcard'>{pic}<div class='gu'>{urdu(name)}</div><div class='gn'>{name}</div></div>")
     for name in DYNAMIC_MAP:
-        pic = "<div class='gph'>🎬<br>hilke<br>karo</div>"
+        pic = "<div class='gph'>🎬<br>moving<br>sign</div>"
         cards.append(f"<div class='gcard dyn'>{pic}<div class='gu'>{DYNAMIC_MAP[name]}</div><div class='gn'>{name}</div></div>")
     return "<div class='ggrid'>" + "".join(cards) + "</div>"
 
 
 with st.sidebar:
-    st.markdown("<p class='gtitle'>📖 Harf guide</p>"
-                "<p class='gsub'>Apna harf dhoondo, photo jaisa ishara karo. "
-                "Naarangi border wale harf hilke (movement se) bante hain.</p>",
+    st.markdown("<p class='gtitle'>📖 Letter guide</p>"
+                "<p class='gsub'>Find your letter and copy the sign in the photo. "
+                "Letters with an orange border are made with movement.</p>",
                 unsafe_allow_html=True)
     st.markdown(guide_cards_html(), unsafe_allow_html=True)
 
@@ -214,7 +214,7 @@ left, right = st.columns([6, 7], gap="large")
 # ------------------------------------------------------------------ left: choice bar + camera
 with left:
     with container(key="leftcol"):
-        with container(key="choicebar"):                        # camera ke upar khali jagah
+        with container(key="choicebar"):                        # empty space above the camera
             c1, c2 = st.columns(2)
             if pending_at_start:
                 names = pick_names(pending_at_start)
@@ -223,7 +223,7 @@ with left:
                 c2.button(f"{urdu(names[1])}  {names[1]}", key="pick2", on_click=state.pick_pending,
                           args=(names[1],), use_container_width=True)
             else:
-                c1.empty()        # purane buttons isi jagah par overwrite ho jayen (warna dhundhle reh jate hain)
+                c1.empty()        # so old buttons are overwritten in place (otherwise they stay faded)
                 c2.empty()
         ctx = webrtc_streamer(
             key="psl-live",
@@ -241,131 +241,131 @@ with right:
                        unsafe_allow_html=True)
 
     with top_set.popover("⚙️ Settings", use_container_width=True):
-        st.markdown("**Static harf**")
-        state.hold_seconds = st.slider("Harf jodne ke liye kitni der rukna hai (second)", 0.5, 2.5, 1.0, 0.1)
-        state.min_conf = st.slider("Static: kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
+        st.markdown("**Static letter**")
+        state.hold_seconds = st.slider("Hold time to add a letter (seconds)", 0.5, 2.5, 1.0, 0.1)
+        state.min_conf = st.slider("Static: minimum confidence", 0.30, 0.95, 0.60, 0.05)
         state.smooth_seconds = st.slider("Smoothing (second)", 0.1, 1.0, 0.4, 0.1,
-                                         help="Pichle itne waqt ki probabilities ka average")
-        state.show_points = st.checkbox("21 points aur lines dikhao", value=True)
-        state.show_dist = st.checkbox("Faasle dikhao (peela: wrist→tip, neela: tip→tip)", value=True)
-        st.markdown("**Dynamic harf**")
-        recorder.record_seconds = st.slider("Recording kitni lambi (second)", 2.0, 4.0, 3.0, 0.5)
-        recorder.min_conf = st.slider("Dynamic: kam az kam yaqeen", 0.30, 0.95, 0.60, 0.05)
-        recorder.aspect_fix = st.checkbox("16:9 fix (training videos jaisa)", value=True)
-        st.caption("Dynamic ke liye right haath use karo; gesture poore 3 second mein phaila do.")
-        st.markdown("**Auto mode** (button ke baghair)")
+                                         help="Average of the probabilities over this much recent time")
+        state.show_points = st.checkbox("Show 21 points and lines", value=True)
+        state.show_dist = st.checkbox("Show distances (yellow: wrist→tip, blue: tip→tip)", value=True)
+        st.markdown("**Dynamic letter**")
+        recorder.record_seconds = st.slider("Recording length (seconds)", 2.0, 4.0, 3.0, 0.5)
+        recorder.min_conf = st.slider("Dynamic: minimum confidence", 0.30, 0.95, 0.60, 0.05)
+        recorder.aspect_fix = st.checkbox("16:9 fix (like the training videos)", value=True)
+        st.caption("For dynamic letters use your right hand and spread the gesture over the full 3 seconds.")
+        st.markdown("**Auto mode** (no button)")
         recorder.auto = st.checkbox("Auto mode on", value=False,
-                                    help="Haath tez hilao to recording khud shuru, ruko to khatam. "
-                                         "Video par 'AUTO v ..' haath ki raftaar dikhata hai.")
-        recorder.v_hi = st.slider("Shuru: raftaar is se oopar", 0.2, 2.0, 0.6, 0.05)
-        recorder.v_lo = st.slider("Khatam: raftaar is se neeche", 0.1, 1.0, 0.3, 0.05)
-        recorder.min_dur = st.slider("Harkat kam az kam (second)", 0.3, 1.5, 0.7, 0.1)
-        recorder.min_energy = st.slider("Harkat ki kam az kam miqdar", 0.3, 3.0, 1.0, 0.1)
+                                    help="Move your hand fast and recording starts by itself; stop and it ends. "
+                                         "'AUTO v ..' on the video shows the hand speed.")
+        recorder.v_hi = st.slider("Start threshold (speed above)", 0.2, 2.0, 0.6, 0.05)
+        recorder.v_lo = st.slider("End threshold (speed below)", 0.1, 1.0, 0.3, 0.05)
+        recorder.min_dur = st.slider("Min duration (seconds)", 0.3, 1.5, 0.7, 0.1)
+        recorder.min_energy = st.slider("Min motion", 0.3, 3.0, 1.0, 0.1)
 
-    with top_stats.popover("📊 Hisaab", use_container_width=True):
-        st.markdown("**Dynamic test ka hisaab** (`results/live_dynamic_log.csv`)")
-        st.button("🔄 Taaza karo", key="refresh_stats")
+    with top_stats.popover("📊 Stats", use_container_width=True):
+        st.markdown("**Dynamic test stats** (`results/live_dynamic_log.csv`)")
+        st.button("🔄 Refresh", key="refresh_stats")
         if DYNAMIC_LOG.exists():
             df = pd.read_csv(DYNAMIC_LOG)
             df["true"] = df["true"].fillna("")
-            df["pred"] = df["pred"].fillna("(haath kam)")
+            df["pred"] = df["pred"].fillna("(hand missing)")
             tl = df[df["true"].isin(list(DYNAMIC_MAP))].copy()
             if len(tl):
-                tl["sahi"] = tl["true"] == tl["pred"]
-                tl["qubool"] = tl["conf"] >= recorder.min_conf
-                st.markdown(f"**Kul accuracy: {tl['sahi'].mean() * 100:.0f}%** "
-                            f"({tl['sahi'].sum()}/{len(tl)} koshishen)")
-                st.markdown(f"Jo qubool hue (yaqeen ≥ {recorder.min_conf:.2f}) unme sahi: "
-                            f"{tl[tl['qubool']]['sahi'].mean() * 100 if tl['qubool'].any() else 0:.0f}% "
-                            f"({tl['qubool'].sum()} qubool)")
-                st.dataframe(tl.groupby("true").agg(koshishen=("sahi", "size"), sahi=("sahi", "sum"),
-                                                    avg_yaqeen=("conf", "mean")).round(2))
-                st.markdown("Confusion (row = asal, column = model ka jawab):")
+                tl["correct"] = tl["true"] == tl["pred"]
+                tl["accepted"] = tl["conf"] >= recorder.min_conf
+                st.markdown(f"**Overall accuracy: {tl['correct'].mean() * 100:.0f}%** "
+                            f"({tl['correct'].sum()}/{len(tl)} attempts)")
+                st.markdown(f"Correct among accepted (confidence ≥ {recorder.min_conf:.2f}): "
+                            f"{tl[tl['accepted']]['correct'].mean() * 100 if tl['accepted'].any() else 0:.0f}% "
+                            f"({tl['accepted'].sum()} accepted)")
+                st.dataframe(tl.groupby("true").agg(attempts=("correct", "size"), correct=("correct", "sum"),
+                                                    avg_conf=("conf", "mean")).round(2))
+                st.markdown("Confusion (row = true, column = model answer):")
                 st.dataframe(pd.crosstab(tl["true"], tl["pred"]))
                 if tl["aspect_fix"].nunique() > 1:
-                    st.markdown("16:9 fix ke saath (1) aur baghair (0):")
-                    st.dataframe(tl.groupby("aspect_fix")["sahi"].agg(["size", "mean"]).round(2))
+                    st.markdown("With 16:9 fix (1) and without (0):")
+                    st.dataframe(tl.groupby("aspect_fix")["correct"].agg(["size", "mean"]).round(2))
             nn = df[df["true"] == NONE_LABEL]
             if len(nn):
                 bad = int((nn["conf"] >= recorder.min_conf).sum())
-                st.markdown(f"**'{NONE_LABEL}'**: {len(nn)} koshishon mein se **{bad}** baar fazool dynamic harf "
-                            f"jur jata (yaqeen ≥ {recorder.min_conf:.2f}). Average yaqeen: {nn['conf'].mean():.2f}")
+                st.markdown(f"**'{NONE_LABEL}'**: in {len(nn)} attempts, a false dynamic letter would be added **{bad}** times "
+                            f"(confidence ≥ {recorder.min_conf:.2f}). Average confidence: {nn['conf'].mean():.2f}")
             if not len(tl) and not len(nn):
-                st.caption("Abhi test wali koi recording nahi. Dynamic card mein asal harf chun kar record karo.")
+                st.caption("No test recordings yet. Pick the true letter in the Dynamic card and record.")
         else:
-            st.caption("Abhi koi recording nahi.")
+            st.caption("No recordings yet.")
         if AUTO_LOG.exists():
             st.markdown("---")
-            st.markdown("**Auto mode ka hisaab** (`results/live_dynamic_auto_log.csv`)")
+            st.markdown("**Auto mode stats** (`results/live_dynamic_auto_log.csv`)")
             ad = pd.read_csv(AUTO_LOG)
             ad["true"] = ad["true"].fillna("")
             ad["pred"] = ad["pred"].fillna("")
-            st.markdown(f"Kul trigger: **{len(ad)}**; ignore (chhoti/kamzor harkat): "
+            st.markdown(f"Total triggers: **{len(ad)}**; ignored (short/weak movement): "
                         f"**{int(ad['why'].isin(['short', 'weak']).sum())}**")
             used = ad[ad["why"] == "ok"]
             at = used[used["true"].isin(list(DYNAMIC_MAP))]
             if len(at):
-                st.markdown(f"Asli harf par sahi: **{(at['true'] == at['pred']).sum()}/{len(at)}**; "
-                            f"qubool (yaqeen ≥ {recorder.min_conf:.2f}): **{int((at['conf'] >= recorder.min_conf).sum())}**")
+                st.markdown(f"Correct on the true letter: **{(at['true'] == at['pred']).sum()}/{len(at)}**; "
+                            f"accepted (confidence ≥ {recorder.min_conf:.2f}): **{int((at['conf'] >= recorder.min_conf).sum())}**")
                 st.dataframe(pd.crosstab(at["true"], at["pred"]))
             an = used[used["true"] == NONE_LABEL]
             if len(an):
-                st.markdown(f"'{NONE_LABEL}' par trigger: **{len(an)}**, jin me fazool harf jura "
-                            f"(yaqeen ≥ {recorder.min_conf:.2f}): **{int((an['conf'] >= recorder.min_conf).sum())}**")
+                st.markdown(f"Triggers on '{NONE_LABEL}': **{len(an)}**, of which a false letter was added "
+                            f"(confidence ≥ {recorder.min_conf:.2f}): **{int((an['conf'] >= recorder.min_conf).sum())}**")
 
-    # ---- Lafz card
+    # ---- Word card
     with container(border=True):
-        st.markdown("<div class='ctitle'>Lafz</div>", unsafe_allow_html=True)
+        st.markdown("<div class='ctitle'>Word</div>", unsafe_allow_html=True)
         word_box = st.empty()
         b1, b2, b3, b4 = st.columns(4)
         b1.button("␣ Space", on_click=state.add_space, use_container_width=True)
-        b2.button("⌫ Mitao", on_click=state.backspace, use_container_width=True)
-        b3.button("🗑 Saaf", on_click=state.clear, use_container_width=True)
-        speak_clicked = b4.button("🔊 Sunao", use_container_width=True)
+        b2.button("⌫ Delete", on_click=state.backspace, use_container_width=True)
+        b3.button("🗑 Clear", on_click=state.clear, use_container_width=True)
+        speak_clicked = b4.button("🔊 Speak", use_container_width=True)
         if speak_clicked:
             text = "".join(urdu(n) for n in state.snapshot()["letters"]).strip()
             if text:
                 try:
                     st.audio(speak(text), format="audio/mp3")
-                except Exception as e:                      # internet na ho to
-                    st.warning(f"Awaaz nahi ban saki (internet?): {e}")
+                except Exception as e:                      # if there is no internet
+                    st.warning(f"Could not make the audio (internet?): {e}")
 
-    # ---- Live pehchaan card
+    # ---- Live recognition card
     with container(border=True):
-        st.markdown("<div class='ctitle'>Live pehchaan</div>", unsafe_allow_html=True)
+        st.markdown("<div class='ctitle'>Live recognition</div>", unsafe_allow_html=True)
         live_box = st.empty()
 
-    # ---- Dynamic harf card
+    # ---- Dynamic letter card
     with container(border=True):
-        st.markdown("<div class='ctitle'>Dynamic harf &nbsp; ج آ ڑ ھ</div>", unsafe_allow_html=True)
+        st.markdown("<div class='ctitle'>Dynamic letter &nbsp; ج آ ڑ ھ</div>", unsafe_allow_html=True)
         d1, d2 = st.columns([2, 3])
-        _sel = d1.selectbox("Asal harf (test ke liye)", TEST_OPTIONS, key="dyn_true", label_visibility="collapsed",
-                     help=f"Test ke liye asal harf chuno. '{NONE_LABEL}' = jaan boojh kar koi dynamic harf NAHI "
-                          f"(sirf haath hilao ya static badlo).")
+        _sel = d1.selectbox("True letter (for testing)", TEST_OPTIONS, key="dyn_true", label_visibility="collapsed",
+                     help=f"Pick the true letter for testing. '{NONE_LABEL}' = deliberately NO dynamic letter "
+                          f"(only move your hand or change the static sign).")
         recorder.auto_label = None if _sel == TEST_OPTIONS[0] else _sel
-        d2.button("🎬 Record karo (3-2-1)", on_click=start_dynamic, type="primary", use_container_width=True)
+        d2.button("🎬 Record (3-2-1)", on_click=start_dynamic, type="primary", use_container_width=True)
         dyn_box = st.empty()
 
 
 def live_html(s):
     busy = recorder.busy()
     fps = state.fps
-    chips = chip("Haath mila", GREEN) if s["has_hand"] else chip("Haath nahi", GRAY)
+    chips = chip("Hand found", GREEN) if s["has_hand"] else chip("No hand", GRAY)
     chips += chip("Dynamic recording", RED) if busy else chip("Static mode", BLUE)
     chips += chip(f"{fps:.0f} FPS", RED if 0 < fps < 10 else GRAY, dot=False)
 
     label, conf = s["top_label"], s["top_conf"]
     if busy or not label:
         color, glyph = GRAY, "—"
-        name = "Recording…" if busy else "Haath dikhao"
+        name = "Recording…" if busy else "Show your hand"
         sub = ""
     elif "?" in label and label.replace(" ?", "") in GROUPS:
         members = GROUPS[label.replace(" ?", "")]
         color, glyph = ORANGE, " ".join(urdu(m) for m in members)
-        name, sub = " / ".join(members) + " ?", "Model farq nahi kar sakta"
+        name, sub = " / ".join(members) + " ?", "Model cannot tell them apart"
     else:
         color, glyph = (GREEN if conf >= state.min_conf else ORANGE), urdu(label)
-        name, sub = label, f"yaqeen {conf * 100:.0f}%"
+        name, sub = label, f"confidence {conf * 100:.0f}%"
 
     rows = ""
     for n, p in ([] if busy else s["top3"]):
@@ -373,12 +373,12 @@ def live_html(s):
                  f"<div class='btrack'><div class='bfill' style='width:{p * 100:.0f}%'></div></div>"
                  f"<span class='bp'>{p * 100:.0f}%</span></div>")
     hold = 0.0 if busy else s["hold"]
-    note = "Rukte raho… harf jurne wala hai" if 0 < hold < 1 else ("✓ Jur gaya, harf badlo" if hold >= 1 else "")
+    note = "Keep holding… letter will be added" if 0 < hold < 1 else ("✓ Added, change the sign" if hold >= 1 else "")
     pend = ""
     if s["pending"]:
         n1, n2 = pick_names(s["pending"])
-        pend = (f"<div class='pend'>⚠️ {urdu(n1)} {n1} ya {urdu(n2)} {n2}? "
-                f"Camera ke upar button dabao, ya keyboard par <b>1</b> / <b>2</b>.</div>")
+        pend = (f"<div class='pend'>⚠️ {urdu(n1)} {n1} or {urdu(n2)} {n2}? "
+                f"Press a button above the camera, or key <b>1</b> / <b>2</b> on the keyboard.</div>")
     return (f"<div>{chips}</div>"
             f"<div class='live' style='--c:{color}'><div class='glyph'>{glyph}</div>"
             f"<div class='lmeta'><div class='lname'>{name}</div><div class='lconf'>{sub}</div></div>"
@@ -390,39 +390,39 @@ def live_html(s):
 def dyn_html():
     r = recorder.result
     if r is None:
-        hint = ("Auto mode on: dynamic gesture karo (haath tez hilao, phir ruko)." if recorder.auto
-                else "Asal harf chuno, 🎬 dabao, 3-2-1 ke baad gesture karo.")
+        hint = ("Auto mode on: do a dynamic gesture (move your hand fast, then stop)." if recorder.auto
+                else "Pick the true letter, press 🎬, then do the gesture after 3-2-1.")
         return f"<div class='dres'><small>{hint}</small></div>"
     if r.get("ignored") in ("short", "weak"):
-        what = "harkat chhoti thi" if r["ignored"] == "short" else "harkat kamzor thi"
-        return f"<div class='dres'>{chip('Ignore', GRAY)}<small>{what}, gesture dobara karo</small></div>"
+        what = "movement too short" if r["ignored"] == "short" else "movement too weak"
+        return f"<div class='dres'>{chip('Ignored', GRAY)}<small>{what}, do the gesture again</small></div>"
     if not r["ok"]:
-        return (f"<div class='dres'>{chip('Haath kam mila', ORANGE)}"
-                f"<small>{r['n_hand']}/{r['n_frames']} frames, dobara koshish karo</small></div>")
+        return (f"<div class='dres'>{chip('Few hand frames', ORANGE)}"
+                f"<small>{r['n_hand']}/{r['n_frames']} frames, try again</small></div>")
     ok = r["conf"] >= recorder.min_conf
     verdict = ""
     if r["true"] in DYNAMIC_MAP:
-        verdict = chip("sahi", GREEN) if r["pred"] == r["true"] else chip(f"ghalat (asal: {r['true']})", RED)
+        verdict = chip("correct", GREEN) if r["pred"] == r["true"] else chip(f"wrong (true: {r['true']})", RED)
     elif r["true"] == NONE_LABEL:
-        verdict = chip("fazool harf jur jata", ORANGE) if ok else chip("theek, nahi jura", GREEN)
-    second = f" · dusra: {r['top2'][1][0]} {r['top2'][1][1] * 100:.0f}%" if len(r["top2"]) > 1 else ""
+        verdict = chip("false letter would be added", ORANGE) if ok else chip("OK, not added", GREEN)
+    second = f" · second: {r['top2'][1][0]} {r['top2'][1][1] * 100:.0f}%" if len(r["top2"]) > 1 else ""
     return (f"<div class='dres'><span class='dl'>{urdu(r['pred'])}</span><b>{r['pred']} {r['conf'] * 100:.0f}%</b>"
-            f"{'' if ok else chip('kam yaqeen, nahi jura', ORANGE, dot=False)}{verdict}"
-            f"<small>{r['n_frames']} frames, haath {r['n_hand']} mein{second}</small></div>")
+            f"{'' if ok else chip('low confidence, not added', ORANGE, dot=False)}{verdict}"
+            f"<small>{r['n_frames']} frames, hand in {r['n_hand']} of them{second}</small></div>")
 
 
 def render():
     s = state.snapshot()
     word = "".join(urdu(n) for n in s["letters"])
-    word_box.markdown(f"<div class='word'>{word if word else '<span class=ph>harf yahan jurte jayenge…</span>'}</div>",
+    word_box.markdown(f"<div class='word'>{word if word else '<span class=ph>letters will appear here…</span>'}</div>",
                       unsafe_allow_html=True)
     live_box.markdown(live_html(s), unsafe_allow_html=True)
     dyn_box.markdown(dyn_html(), unsafe_allow_html=True)
     if (s["pending"] is not None) != (pending_at_start is not None):
-        st.rerun()                                              # buttons aane / jaane ke liye page dobara banao
+        st.rerun()                                              # rebuild the page so the buttons appear / disappear
 
 
-# keyboard: 1 / 2 dabane se upar wale button par click ho jaye
+# keyboard: pressing 1 / 2 clicks the button above the camera
 components.html("""
 <script>
 const doc = window.parent.document;
@@ -432,7 +432,7 @@ window.parent.__pslKeys = function (e) {
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   if (e.key !== '1' && e.key !== '2') return;
   const b = doc.querySelector('.st-key-pick' + e.key + ' button');
-  if (b && b.offsetWidth > 0) { b.click(); e.preventDefault(); }   // sirf nazar aane wala button
+  if (b && b.offsetWidth > 0) { b.click(); e.preventDefault(); }   // only a visible button
 };
 doc.addEventListener('keydown', window.parent.__pslKeys);
 </script>

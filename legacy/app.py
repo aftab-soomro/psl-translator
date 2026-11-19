@@ -21,11 +21,11 @@ LETTER_MAP = {
 st.set_page_config(page_title="PSL Translator", page_icon="🤟")
 
 st.title("Pakistan Sign Language — Urdu Alphabet Translator")
-st.write("Apna haath webcam ke saamne rakhein aur ek Urdu harf ka sign karein.")
-snapshot = st.camera_input("Apna haath camera ke saamne rakhein aur photo lein")
+st.write("Hold your hand in front of the webcam and sign one Urdu letter.")
+snapshot = st.camera_input("Hold your hand in front of the camera and take a photo")
 
 if snapshot is not None:
-    # Photo ek temporary folder me jati hai, jo khatam hote hi khud delete ho jata hai
+    # The photo goes into a temporary folder, which is deleted by itself when the block ends
     with tempfile.TemporaryDirectory() as tmp_dir:
         temp_path = Path(tmp_dir) / "snapshot.jpg"
         temp_path.write_bytes(snapshot.getvalue())
@@ -35,7 +35,7 @@ if snapshot is not None:
     if result["error"]:
         st.warning(result["error"])
     else:
-        # Asal image par landmarks (laal dots) draw karke dikhana
+        # Draw the landmarks (red dots) on the original image and show it
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         h, w, _ = img_rgb.shape
         lm = result["landmarks"]
@@ -44,7 +44,7 @@ if snapshot is not None:
             cv2.circle(img_rgb, (x, y), 6, (255, 0, 0), -1)
         st.image(img_rgb, caption="Detected hand landmarks", width="stretch")
 
-        # Bara Urdu harf aur confidence
+        # Large Urdu letter and confidence
         urdu_letter = LETTER_MAP.get(result["letter"], "?")
         col1, col2 = st.columns(2)
         with col1:
@@ -54,12 +54,12 @@ if snapshot is not None:
             st.metric("Confidence", f"{result['confidence']:.1%}")
             st.progress(result["confidence"])
 
-        # Kam confidence par warning
+        # Warning on low confidence
         if result["confidence"] < LOW_CONFIDENCE:
-            st.warning("Model ko is sign par kam yaqeen hai. Haath thora saaf aur roshni mein rakh kar dobara photo lein.")
+            st.warning("The model has low confidence in this sign. Hold your hand clearly in good light and take the photo again.")
 
-        # Top 3 andaze
-        st.subheader("Top 3 andaze")
+        # Top 3 guesses
+        st.subheader("Top 3 guesses")
         top3 = sorted(result["probabilities"].items(), key=lambda kv: kv[1], reverse=True)[:3]
         for name, prob in top3:
             c1, c2, c3 = st.columns([1, 2, 5])

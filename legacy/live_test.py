@@ -13,7 +13,7 @@ from src.live import LiveHandTracker, draw_hand
 
 st.set_page_config(page_title="Live test", page_icon="🖐️", layout="wide")
 st.title("Live test: 21 points")
-st.caption("START dabao, camera ki ijazat do, aur haath dikhao.")
+st.caption("Press START, allow the camera, and show your hand.")
 
 
 @st.cache_resource
@@ -27,7 +27,7 @@ state = {"t": time.time(), "fps": 0.0}
 
 def callback(frame: av.VideoFrame) -> av.VideoFrame:
     img = frame.to_ndarray(format="bgr24")
-    img = cv2.flip(img, 1)                              # shishe jaisa view (selfie)
+    img = cv2.flip(img, 1)                              # mirror view (selfie)
     lm = tracker.detect(img)
     if lm is not None:
         draw_hand(img, lm)
@@ -35,7 +35,7 @@ def callback(frame: av.VideoFrame) -> av.VideoFrame:
     now = time.time()
     state["fps"] = 0.9 * state["fps"] + 0.1 * (1.0 / max(now - state["t"], 1e-6))
     state["t"] = now
-    msg = f"FPS {state['fps']:.0f} | " + ("haath mila" if lm is not None else "haath nahi")
+    msg = f"FPS {state['fps']:.0f} | " + ("hand found" if lm is not None else "no hand")
     cv2.putText(img, msg, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
     return av.VideoFrame.from_ndarray(img, format="bgr24")
 

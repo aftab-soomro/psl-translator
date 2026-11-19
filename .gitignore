@@ -20,7 +20,7 @@ __pycache__/
 # Environment variables
 .env
 
-# App ka temporary snapshot (chehra hota hai, commit nahi karna)
+# The app's temporary snapshot (it contains a face, do not commit)
 temp_snapshot.jpg
 
 app/audio_cache/*.mp3

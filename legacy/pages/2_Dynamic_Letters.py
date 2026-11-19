@@ -10,14 +10,14 @@ sys.path.append(str(ROOT))
 from src.video_features import video_features
 
 MODEL_PATH = ROOT / "models" / "dynamic_rf_T8.joblib"
-# Urdu harf: FESF PSL dictionary (psl.org.pk) se ek dafa verify karna baaqi hai
+# Urdu letters: still to be verified once against the FESF PSL dictionary (psl.org.pk)
 DYNAMIC_MAP = {"2-Hay": "ھ", "Alifmad": "آ", "Aray": "ڑ", "Jeem": "ج"}
 LOW_CONFIDENCE = 0.50
 
 st.set_page_config(page_title="Dynamic Letters", page_icon="🎥")
 st.title("Dynamic Letters (video)")
-st.caption("4 harf jinme haath hilta hai: 2-Hay, Alifmad, Aray, Jeem. "
-           "2-3 second ki video upload karo, ek haath, saaf roshni, sada background.")
+st.caption("4 letters where the hand moves: 2-Hay, Alifmad, Aray, Jeem. "
+           "Upload a 2-3 second video: one hand, good light, plain background.")
 
 
 @st.cache_resource
@@ -25,7 +25,7 @@ def load_model():
     return joblib.load(MODEL_PATH)
 
 
-video = st.file_uploader("Video chuno", type=["mp4", "mov", "avi", "m4v"])
+video = st.file_uploader("Choose a video", type=["mp4", "mov", "avi", "m4v"])
 
 if video is not None:
     data = video.getvalue()
@@ -34,11 +34,11 @@ if video is not None:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / ("clip" + Path(video.name).suffix)
         path.write_bytes(data)
-        with st.spinner("Video ke frames se haath ke points nikal rahe hain..."):
+        with st.spinner("Extracting hand points from the video frames..."):
             feats = video_features(path)
 
     if feats is None:
-        st.warning("Video mein haath nahi mila. Saaf roshni mein, haath poora frame mein rakh kar dobara record karein.")
+        st.warning("No hand found in the video. Record again in good light with the whole hand in the frame.")
     else:
         model = load_model()
         probs = model.predict_proba(feats)[0]
@@ -58,9 +58,9 @@ if video is not None:
             st.progress(conf)
 
         if conf < LOW_CONFIDENCE:
-            st.warning("Model ko pakka yaqeen nahi. Dobara video banayein.")
+            st.warning("The model is not sure. Record the video again.")
 
-        st.subheader("Saare 4 harf")
+        st.subheader("All 4 letters")
         for i in order:
             st.write(f"{DYNAMIC_MAP.get(classes[i], classes[i])}  {classes[i]}")
             st.progress(float(probs[i]))

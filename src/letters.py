@@ -1,7 +1,7 @@
-"""letters.py: folder ke naam se Urdu harf ka mapping (Word Builder page ke liye)."""
+"""letters.py: mapping from folder name to Urdu letter (for the Word Builder page)."""
 
 LETTER_MAP = {
-        # <-- app.py wale LETTER_MAP ke 36 entries yahan paste karo
+        # <-- paste the 36 entries of the LETTER_MAP from app.py here
     "Alif": "ا", "Bay": "ب", "Pay": "پ", "Tay": "ت", "Taay": "ٹ", "Say": "ث",
     "Chay": "چ", "1-Hay": "ح", "Khay": "خ", "Daal": "د", "Dal": "ڈ", "Zaal": "ذ",
     "Ray": "ر", "Zay": "ز", "Zaey": "ژ", "Seen": "س", "Sheen": "ش", "Suad": "ص",
