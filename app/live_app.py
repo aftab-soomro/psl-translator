@@ -30,6 +30,7 @@ from src.live import (AUTO_LOG, DYNAMIC_LOG, DYNAMIC_MAP, DYNAMIC_MODEL_PATH, GR
 AUDIO_DIR = ROOT / "app" / "audio_cache"
 GUIDE_DIR = ROOT / "app" / "assets" / "letters"
 NONE_LABEL = "no gesture"
+RESULT_SHOW_SECONDS = 8      # a dynamic result stays in the Dynamic card this long, then the hint comes back
 TEST_OPTIONS = ["(no test)"] + list(DYNAMIC_MAP) + [NONE_LABEL]
 
 GREEN, ORANGE, BLUE, RED, GRAY = "#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#94a3b8"
@@ -257,10 +258,12 @@ with right:
         recorder.auto = st.checkbox("Auto mode on", value=False,
                                     help="Move your hand fast and recording starts by itself; stop and it ends. "
                                          "'AUTO v ..' on the video shows the hand speed.")
-        recorder.v_hi = st.slider("Start threshold (speed above)", 0.2, 2.0, 0.6, 0.05)
-        recorder.v_lo = st.slider("End threshold (speed below)", 0.1, 1.0, 0.3, 0.05)
-        recorder.min_dur = st.slider("Min duration (seconds)", 0.3, 1.5, 0.7, 0.1)
-        recorder.min_energy = st.slider("Min motion", 0.3, 3.0, 1.0, 0.1)
+        recorder.v_hi = st.slider("Start threshold (speed above)", 0.2, 2.0, 0.8, 0.05)
+        recorder.v_lo = st.slider("End threshold (speed below)", 0.1, 1.0, 0.35, 0.05)
+        recorder.min_dur = st.slider("Min duration (seconds)", 0.3, 1.5, 0.9, 0.1)
+        recorder.min_energy = st.slider("Min motion", 0.3, 3.0, 1.3, 0.1)
+        if recorder.v_lo >= recorder.v_hi:
+            st.warning("End threshold must be lower than Start threshold, otherwise a gesture never ends cleanly.")
 
     with top_stats.popover("📊 Stats", use_container_width=True):
         st.markdown("**Dynamic test stats** (`results/live_dynamic_log.csv`)")
@@ -348,7 +351,7 @@ with right:
 
 
 def live_html(s):
-    busy = recorder.busy()
+    busy = recorder.blocks_static(time.time())          # a tiny tremor in Auto mode is not "recording"
     fps = state.fps
     chips = chip("Hand found", GREEN) if s["has_hand"] else chip("No hand", GRAY)
     chips += chip("Dynamic recording", RED) if busy else chip("Static mode", BLUE)
@@ -389,6 +392,8 @@ def live_html(s):
 
 def dyn_html():
     r = recorder.result
+    if r is not None and recorder.result_age(time.time()) > RESULT_SHOW_SECONDS:
+        r = None                                                # old result: show the hint again (history is in Stats)
     if r is None:
         hint = ("Auto mode on: do a dynamic gesture (move your hand fast, then stop)." if recorder.auto
                 else "Pick the true letter, press 🎬, then do the gesture after 3-2-1.")

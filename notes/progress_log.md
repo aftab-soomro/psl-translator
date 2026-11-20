@@ -204,3 +204,11 @@ Phase 12 live app: Steps 1-3 code complete (details in notes/live_app.md). Live 
 - Live accuracy (own webcam, one signer): 4 dynamic letters 56/56 correct; 70% accepted at confidence >= 0.60. On 'no gesture' 4/10 false letters (the model has no none class). Details in notes/live_app.md and results/live_dynamic_threshold.csv.
 - Explain it simply: a static letter needs you to hold still for a moment; for a dynamic letter you press a button so the app knows the movement is about to start.
 - Limit: the dynamic model has no "no gesture" class, so a wrong movement can also turn into a letter; if confidence is below 60% no answer is given.
+
+## Step 129: Auto mode fixes after a screen-recording check, 2026-11-21
+- What: src/live.py, app/live_app.py, notes/live_app.md, notes/presentation_notes.md (branch auto-fixes; main stays equal to the submitted version).
+- Problems found in a screen recording: start threshold too low (tiny hand movements triggered), the end pose after a dynamic letter was read as a wrong static letter (Wao/Alif), the red REC chip flickered, a full 3.5 s gesture got a low confidence.
+- Fixes: static letters pause only after the movement lasted 0.9 s; the locked end pose is released only after the hand is away for 1 s; new defaults Start 0.80, End 0.35, Min duration 0.9, Min motion 1.3; max segment 3.0 s; the result card clears after 8 s; warning if End >= Start.
+- Tests: synthetic hand movements (the old code added a wrong letter, the new code does not; a tremor is ignored) and the real app with a fake camera.
+- Real check: 74 s screen recording of the fixed version: 2 Alifmad gestures recognised correctly, no false dynamic letter while the hand moved in and out of the frame about 10 times, 1 wrong static letter (Suad) added while the hand was being raised. This is only a short check, not an accuracy measurement.
+- Limit: Auto mode accuracy on many gestures is not measured yet.

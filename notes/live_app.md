@@ -37,7 +37,23 @@
 - Threshold: results/live_dynamic_threshold.csv (0.5: true gestures accepted 86% / false letters added 50%; 0.6: 70% / 40%; 0.7: 59% / 10%). There are only 10 'no gesture' tries, so I kept 0.60 (not tuned on the test).
 - Mistakes in the log: I forgot to change the dropdown; I removed 1 try (I did the wrong gesture) and corrected the label of 5 tries based on the time.
 
-## Method A (self-detection from motion): not for now
-- The plan was: motion meter -> hand stopped = static, hand moving = recording -> stopped = dynamic model (src/motion.py was written, not used in the live app).
-- Risk: the dynamic model has no "no gesture" class; even the movement of changing the letter can become Jeem/Aray.
-- Decision: first look at the live accuracy of B; later if needed.
+## Auto mode (Method A, motion-triggered, no button): built 2026-11-16, fixed 2026-11-20
+- Why: the Record button is awkward; a signer should just make the gesture. Settings -> "Auto mode on" (off by default).
+- Idea: speed = average distance moved by the 21 points over the last ~0.2 s, divided by palm length (wrist -> point 9), per second.
+  Fast movement for >= 0.25 s starts a segment (with ~0.5 s of earlier frames, so the start is not cut off); the segment ends when the hand is
+  still for 0.4 s, after 3 s at most, or when the hand is lost for 0.6 s. The still part at the end is cut. Then the same dynamic model as the button.
+- A segment is ignored if the movement is shorter than "Min duration" (0.9 s) or too small ("Min motion" 1.3 palm lengths). After a segment there is a 1.5 s cooldown.
+- Defaults: Start threshold 0.80, End threshold 0.35 (must be lower than Start), Min duration 0.9, Min motion 1.3. The video shows "AUTO v x.x" so you can see the hand speed.
+- Log: results/live_dynamic_auto_log.csv (own file, not mixed with the button log); "Stats" shows it separately.
+- What the screen recording of 2026-11-16 showed (hand near the face):
+  1. A resting hand has speed 0.0-0.4 and a slightly moving hand 1.3-1.6, so a Start threshold of 0.40 triggered all the time.
+  2. After the dynamic letter (Jeem) the hand stayed in the end pose and the static model added a wrong letter (Wao) and later another one (Alif).
+     Reason: motion blur made the hand disappear for a moment, which unlocked the end pose.
+  3. Every tiny trigger paused the static letters and showed the red REC chip, so it flickered.
+  4. A gesture that went on for the full 3.5 s (hand moving to the face, then the gesture, then back) got a low confidence (Jeem 31%) and was rejected (a safe failure).
+- Fixes (branch auto-fixes): the static letters are paused only after the movement has lasted "Min duration" (a tremor does not block them); the REC chip appears only then;
+  after a dynamic letter the locked end pose is unlocked only when the hand is away for 1 s (a short blur drop-out does not unlock it) or another letter is added;
+  new defaults (above); maximum segment 3.0 s (same as a button recording); the result in the Dynamic card disappears after 8 s; a warning if End >= Start.
+- Tests: synthetic hand movements (tremor is ignored and does not block static, a real gesture is recognised and blocks static; the old code added the wrong letter and the new code does not);
+  the real app with a fake camera (Record, Auto mode switch, result timeout, no errors). NOT measured yet: the accuracy of Auto mode with a real hand after the fixes.
+- Limitation: the dynamic model has no "no gesture" class, so a movement that is not a dynamic letter can still become a letter; the confidence threshold 0.60 and the checks above reduce this but do not remove it.

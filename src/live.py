@@ -129,9 +129,12 @@ class WordState:
     the user picks with a button.
     The same letter is added again only when (a) you remove your hand and bring it back, or (b) another letter is added first.
     During a dynamic recording (paused), static adds nothing; after it, the first static shape is locked.
+    That lock is cleared only when the hand is really removed for REMOVE_AFTER_DYNAMIC seconds (a short drop-out
+    caused by motion blur must not unlock it), or when another letter is added.
     """
 
     MISS_RESET = 8      # if no hand is found for this many frames in a row, it counts as "hand removed"
+    REMOVE_AFTER_DYNAMIC = 1.0   # after a dynamic gesture the hand must be away this long (seconds) to unlock
     SWITCH_AFTER = 3    # the candidate changes only if another letter appears for this many frames in a row (avoids flicker)
 
     def __init__(self):
@@ -147,11 +150,13 @@ class WordState:
         self.locked = None          # last added letter (or group)
         self.paused = False         # True while a dynamic recording is running
         self.wait_change = False    # after dynamic: do not add the first static shape
+        self.post_dynamic = False   # after dynamic: the locked shape stays locked through short drop-outs
         self._win = deque()         # (time, probs) for the last smooth_seconds
         self._cand = None
         self._cand_start = 0.0
         self._flick = 0
         self._miss = 0
+        self._miss_t0 = 0.0         # when the current run of "no hand" frames started
         # settings (changed from the page)
         self.hold_seconds = 1.0
         self.smooth_seconds = 0.4
@@ -192,12 +197,16 @@ class WordState:
                 self.has_hand = False
                 self.top3 = []
                 self.top_label, self.top_conf = "", 0.0
+                if self._miss == 0:
+                    self._miss_t0 = now
                 self._miss += 1
                 if self._miss >= self.MISS_RESET:
                     self._win.clear()
                     self._reset_candidate()
-                    self.locked = None
-                    self.wait_change = False
+                    if not self.post_dynamic or now - self._miss_t0 >= self.REMOVE_AFTER_DYNAMIC:
+                        self.locked = None
+                        self.wait_change = False
+                        self.post_dynamic = False
                 return
 
             self._miss = 0
@@ -240,6 +249,7 @@ class WordState:
                 else:
                     self.letters.append(self._cand)
                     self.pending = None
+                self.post_dynamic = False                    # a real static letter was chosen: normal rules again
 
     def after_dynamic(self, name=None):
         """Dynamic recording finished: add the letter if it was accepted, then hold static until the next shape."""
@@ -251,6 +261,7 @@ class WordState:
             self._reset_candidate()
             self.locked = None
             self.wait_change = True
+            self.post_dynamic = True
 
     # buttons
     def add_letter(self, name):
@@ -336,12 +347,12 @@ class DynamicRecorder:
         # --- Auto mode (no button): detects the start / end of a gesture from the hand speed
         self.auto = False
         self.auto_label = None           # true letter for testing (from the page), None = no test
-        self.v_hi = 0.60                 # above this speed (palm length / second) => movement starts
-        self.v_lo = 0.30                 # below this => the hand has stopped
-        self.min_dur = 0.7               # minimum movement time (seconds), otherwise ignored
-        self.min_energy = 1.0            # total amount of movement (palm lengths), otherwise ignored
+        self.v_hi = 0.80                 # above this speed (palm length / second) => movement starts
+        self.v_lo = 0.35                 # below this => the hand has stopped (always lower than v_hi)
+        self.min_dur = 0.9               # minimum movement time (seconds), otherwise ignored
+        self.min_energy = 1.3            # total amount of movement (palm lengths), otherwise ignored
         self.still_end = 0.4             # the gesture ends if the hand stays still this long
-        self.max_seg = 3.5               # maximum gesture length (seconds)
+        self.max_seg = 3.0               # maximum gesture length (seconds), same as a manual recording
         self.cooldown = 1.5              # no new gesture starts for this long after a gesture
         self.speed = 0.0                 # smoothed speed (to show on the video)
         self._reset_auto()
@@ -371,6 +382,24 @@ class DynamicRecorder:
 
     def busy(self):
         return self.phase in ("countdown", "recording", "auto")
+
+    def blocks_static(self, now):
+        """
+        True while the static letters must stay quiet: during a manual recording, or during an Auto gesture
+        whose movement has already lasted min_dur seconds (so it will count as a real gesture). A short hand
+        tremor (which Auto mode may start and then ignore) does not block the static letters.
+        """
+        with self.lock:
+            if self.phase in ("countdown", "recording"):
+                return True
+            if self.phase == "auto":
+                return self._a_last_move - self._a_t0 >= self.min_dur
+            return False
+
+    def result_age(self, now):
+        """Seconds since the last result (a very large number if there is none)."""
+        with self.lock:
+            return now - self._result_t if self.result is not None else 1e9
 
     def status(self, now):
         with self.lock:
@@ -682,7 +711,7 @@ def make_callback(state, tracker, predictor, recorder):
         h, w = img.shape[:2]
 
         lm = tracker.detect(img)                       # on the original (not mirrored) frame, as in training
-        state.paused = recorder.busy()                 # static adds nothing during a recording
+        state.paused = recorder.blocks_static(now)     # static adds nothing during a (confirmed) recording
         probs = predictor.proba(lm) if lm is not None else None
         state.update(probs, now)
 
@@ -720,8 +749,9 @@ def make_callback(state, tracker, predictor, recorder):
             _chip(img, f"REC {val:.1f} / {recorder.record_seconds:.1f}s{tag}", 10, 46, C_RED, scale=0.9, thick=2)
             _bar(img, frac, C_RED)
         elif phase == "auto":
-            _chip(img, f"AUTO REC {val:.1f}s", 10, 46, C_RED, scale=0.9, thick=2)
-            _bar(img, min(val / recorder.max_seg, 1.0), C_RED)
+            if recorder.blocks_static(now):            # only after the movement lasted a moment (no flicker)
+                _chip(img, f"AUTO REC {val:.1f}s", 10, 46, C_RED, scale=0.9, thick=2)
+                _bar(img, min(val / recorder.max_seg, 1.0), C_RED)
         elif phase == "result":
             r = recorder.result
             if r.get("ignored") in ("short", "weak"):
