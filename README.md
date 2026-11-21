@@ -18,6 +18,7 @@ Webcam frame -> MediaPipe HandLandmarker (21 points, 63 numbers)
 - An optional **Auto mode** (Settings, off by default) tries to detect a dynamic gesture from hand motion instead of the Record button. It is experimental.
 - **Tuey / Daal** look almost identical in landmarks. When the model cannot separate them, the app shows two numbered buttons (or press keyboard `1` / `2`) and the user chooses.
 - The **Letter guide** in the sidebar shows one photo, the Urdu letter and the Roman name of every letter, so a new user can find a sign.
+- **PSL Coach** (sidebar, *Practice*): pick a letter and copy the photo. The app colours each finger green, orange or red and says which finger to fix and how ("Straighten your index at the middle joint"). It compares 19 finger angles with the same letter in the training photos (66 signers). For the 4 moving letters, press Record (or use Auto mode) and the app says whether the gesture was right. Details: `notes/coach.md`.
 
 ## Setup
 
@@ -43,14 +44,15 @@ Open the link Streamlit prints, press **START** and allow the camera in the brow
 |---|---|
 | `app/live_app.py` | The single live page (camera, word builder, dynamic recording, Letter guide) |
 | `app/assets/letters/` | One reference photo per letter for the sidebar guide |
-| `src/` | Model code: features, prediction, live tracking (`live.py`), dynamic letters (`video_features.py`), letter map (`letters.py`) |
+| `src/` | Model code: features, prediction, live tracking (`live.py`), dynamic letters (`video_features.py`), letter map (`letters.py`), PSL Coach (`coach.py`, test in `coach_eval.py`) |
 | `models/` | Trained models (static v3, dynamic RF) |
-| `notebooks/` | `00_project_overview.ipynb` (start here), then notebooks 01-16: experiments, cross-validation, confusion-pair analysis |
+| `notebooks/` | `00_project_overview.ipynb` (start here), then notebooks 01-17: experiments, cross-validation, confusion-pair analysis, PSL Coach test (17) |
 | `results/` | Result tables and the live dynamic-letter test log |
 | `reports/figures/` | Graphs and figures for the report |
 | `notes/` | Project log, dataset notes, leakage audit, AI-use log, viva Q&A |
 | `legacy/` | Old multi-page version of the app (kept for reference, not used) |
 | `make_letter_guide.py` | Rebuilds the sidebar photos from the dataset (needs the dataset in `data/`) |
+| `make_dynamic_guide.py` | Optional: makes a small GIF for each of the 4 moving letters from the UAlpha40 zip (`app/assets/dynamic/`) |
 | `data/` | `raw/` dataset images (not in Git), `processed/` extracted landmarks, `custom_test/` own recorded test images (not in Git) |
 
 ## Dataset
@@ -69,6 +71,7 @@ Do not re-run notebooks `01`, `02`, `04`, `13` and `15` unless you have the data
 - Static letters, 36 classes: **95.2%** signer-wise cross-validation accuracy (the test split was kept sealed and was not used to choose the model).
 - Dynamic letters (studio videos): 99.1% cross-validation, 96.7% on the held-out test videos.
 - Live dynamic-letter accuracy from a real webcam is logged in `results/live_dynamic_log.csv` and shown in the app under *Stats*.
+- PSL Coach (signer-wise test with one finger changed on purpose by 40 degrees): when the app says "not right yet", the coach names the changed finger in 63% of cases (chance 20%); on correct photos it shows a wrong tip only 5% of the time (`results/coach_eval.csv`).
 
 ## Known limitations
 
@@ -78,4 +81,5 @@ Do not re-run notebooks `01`, `02`, `04`, `13` and `15` unless you have the data
 - The test set is small (about +/-1.8 percentage points) and there is no external test set.
 - There is no "no letter" class; a non-sign hand shape can still be predicted as some letter, which is why the app uses a confidence threshold and a one-second hold.
 - Auto mode for dynamic letters is experimental and can trigger on small hand movements; the Record button is the tested way.
-- Only 36 static + 4 dynamic letters are covered, not words or sentences.
+- The PSL Coach was tested with simulated mistakes (one finger rotated in the landmark data), not yet with real learners.
+- Only 36 static + 4 dynamic letters are covered, not words or sentences.

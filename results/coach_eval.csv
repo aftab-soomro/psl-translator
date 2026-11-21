@@ -1,0 +1,28 @@
+theta_deg,measure,value,n
+25.0,correct photo: app says correct (model accepts),0.9191685912240185,2165
+25.0,correct photo: a wrong tip is shown,0.053117782909930716,2165
+25.0,changed finger: app says not right yet,0.11545676766528334,17591
+25.0,caught: coach names the changed finger,0.34711964549483015,2031
+25.0,caught: tip has the right direction,0.3540128015755785,2031
+25.0,correct photo: an 'even better' tip is shown,0.04896073903002309,2165
+25.0,changed but accepted: 'even better' tip is shown,0.13123393316195373,15560
+25.0,'even better' tip: names the changed finger,0.6302644466209598,2042
+25.0,all changed: coach names the changed finger (no model gate),0.3499516798362799,17591
+40.0,correct photo: app says correct (model accepts),0.9191685912240185,2165
+40.0,correct photo: a wrong tip is shown,0.053117782909930716,2165
+40.0,changed finger: app says not right yet,0.16030579943857137,16743
+40.0,caught: coach names the changed finger,0.6304023845007451,2684
+40.0,caught: tip has the right direction,0.6199701937406855,2684
+40.0,correct photo: an 'even better' tip is shown,0.04896073903002309,2165
+40.0,changed but accepted: 'even better' tip is shown,0.403015861725585,14059
+40.0,'even better' tip: names the changed finger,0.871337804447582,5666
+40.0,all changed: coach names the changed finger (no model gate),0.6897210774652094,16743
+60.0,correct photo: app says correct (model accepts),0.9191685912240185,2165
+60.0,correct photo: a wrong tip is shown,0.053117782909930716,2165
+60.0,changed finger: app says not right yet,0.2527103768714507,15496
+60.0,caught: coach names the changed finger,0.8480592441266599,3916
+60.0,caught: tip has the right direction,0.8230337078651685,3916
+60.0,correct photo: an 'even better' tip is shown,0.04896073903002309,2165
+60.0,changed but accepted: 'even better' tip is shown,0.7780656303972366,11580
+60.0,'even better' tip: names the changed finger,0.9374028856825749,9010
+60.0,all changed: coach names the changed finger (no model gate),0.8647392875580795,15496

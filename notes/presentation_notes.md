@@ -18,7 +18,9 @@ A live webcam app that recognises the Pakistan Sign Language Urdu alphabet (36 s
 9. **Live test on my own webcam.** 56 of 56 dynamic gestures correct. At confidence >= 0.60: 39 of 56 accepted, all correct. "No gesture" tests: 4 of 10 added a false letter, so the confidence threshold 0.60 is used.
 10. **Live app.** One screen: video with the 21 points, word box, live recognition with top-3 bars, Harf guide (photo of every letter), Settings, Stats.
 11. **Auto mode (no button).** Motion-triggered gesture detection (details below).
-12. **Limits and future work.** See section 5.
+12. **PSL Coach (our own new idea).** Practice mode that says WHICH finger is wrong and HOW to fix it (section 8).
+13. **Related work.** What exists on GitHub / the web and how we are different (section 9).
+14. **Limits and future work.** See section 5.
 
 ## 3. How the live app works (for the demo)
 - Static letter: hold the sign about 1 second; the letter is added. Probabilities are averaged over 0.4 s so the label does not flicker. Same letter again needs a new letter or the hand removed and brought back.
@@ -26,6 +28,7 @@ A live webcam app that recognises the Pakistan Sign Language Urdu alphabet (36 s
 - Dynamic letter: press Record, 3-2-1, do the gesture for 3 seconds. Or switch on Auto mode and just do the gesture.
 - Stats popup: live accuracy from the logs (`results/live_dynamic_log.csv`).
 - Demo idea: spell a short name with static letters, show a Tuey / Daal question, then one dynamic letter (Jeem) with the button, then with Auto mode.
+- Coach demo: sidebar -> Practice -> pick Bay; make it with the index finger bent: the index turns red and the tip says "Straighten your index ..."; fix it -> "Correct!" -> Next letter.
 
 ## 4. Auto mode: the engineering story (good for a "what went wrong and how I fixed it" slide)
 - Why: a button is awkward for a signer.
@@ -51,3 +54,20 @@ A live webcam app that recognises the Pakistan Sign Language Urdu alphabet (36 s
 
 ## 7. Log of things added after the submission (newest last)
 - 2026-11-20: Auto mode fixes (branch auto-fixes). Tests passed on synthetic data and in the real app with a fake camera.
+- 2026-11-21: FPS check: camera alone 30 FPS, camera + MediaPipe 29.7 FPS on the laptop; low FPS in the evening video was the dark room and the screen recording, not the code. 60 FPS is not possible (camera max 30 at 640x480; MediaPipe alone ~18 ms per frame).
+- 2026-11-21: PSL Coach (practice mode) + notebook 17 + results/coach_eval*.csv. 2-Hay now shows Choti Hay.
+
+## 8. PSL Coach: the new idea (one or two slides)
+- Problem: a learner (for example a hearing parent of a deaf child) does not know WHAT is wrong in a sign; PSL apps only show videos.
+- Idea: compare 19 easy angles of the learner's hand (15 finger bends, 4 spreads) with the same letter in the training photos of 66 signers; z-score; the finger with the biggest difference is the one to fix; the tip says bend more / straighten / spread / bring together.
+- The static model still decides "correct" (>= 0.60); the coach explains what to change. Without this gate it would complain on 27% of correct photos, with it 5%.
+- Test (signer-wise, test set not used): one finger changed on purpose on held-out photos. At 40 degrees: when the app says "not right yet", the coach names the changed finger 63% (chance 20%), direction right 62%; at 60 degrees 85% / 82%. Wrong tip on correct photos: 5%.
+- Finding to tell: the model still accepts 84% of hands with one finger 40 degrees off; the coach's "even better" tip catches these and names the right finger 87% of the time (and appears on only 5% of correct photos).
+- Weak spots: ring and pinky (they move together), "straighten your thumb"; simulated mistakes, not real learners yet.
+- Moving letters: same Practice list; press Record or use Auto mode and the app says "Correct! Jeem 91%" or "That looked like Aray (70%)", with a GIF of how the letter is made. Practice attempts are not logged, so the live-test Stats stay clean.
+- Figure: reports/figures/coach_eval_by_finger.png. Numbers: results/coach_eval.csv. Details: notes/coach.md.
+
+## 9. Related work (be honest, it makes us look stronger)
+- github.com/ShaikhAzanAsim/sign-eng-urdu is the closest: MediaPipe + Random Forest for static, DTW for the same 4 dynamic letters, live app. It reports no accuracy and uses self-recorded data.
+- Others: SignSpeak (BiLSTM + Gemini, words), PSL-Sign-Language-AI (CNN on UAlpha40, image upload only), SignBridge (prototype, phrases), IsharaPal FYP (TCN, no numbers given). None we found reports signer-wise accuracy for PSL letters.
+- What is ours: signer-wise evaluation with numbers, Tuey/Daal analysis, measured live test, Auto mode story, and the PSL Coach (no PSL tool we found names the finger to fix).

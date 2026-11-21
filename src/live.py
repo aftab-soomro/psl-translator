@@ -8,7 +8,7 @@ For the live webcam:
                       treats a pair like Tuey/Daal as one group and asks the user
   - DynamicRecorder : Method B - button, 3-2-1, then 3 seconds of recording -> dynamic model
   - draw_hand / draw_measurements : draw 21 points, lines and distances on the frame
-  - make_callback   : frame callback for webrtc
+  - make_callback   : frame callback for webrtc (also runs the PSL Coach in practice mode, see src/coach.py)
 """
 
 import csv
@@ -25,6 +25,7 @@ import numpy as np
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
+from src.coach import CHAINS as COACH_CHAINS, Z_TIP as COACH_Z_TIP
 from src.predict import MODEL_FILE          # to change the static model, change it only there
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,7 +45,7 @@ def pick_names(pending):
     order = [m for ms in GROUPS.values() for m in ms]
     return sorted((n for n, _ in pending), key=order.index)
 
-DYNAMIC_MAP = {"2-Hay": "ھ", "Alifmad": "آ", "Aray": "ڑ", "Jeem": "ج"}
+DYNAMIC_MAP = {"2-Hay": "ہ", "Alifmad": "آ", "Aray": "ڑ", "Jeem": "ج"}   # 2-Hay = Choti Hay (notes/dataset_notes.md)
 
 CONNECTIONS = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
                (5, 9), (9, 10), (10, 11), (11, 12), (9, 13), (13, 14), (14, 15), (15, 16),
@@ -347,6 +348,9 @@ class DynamicRecorder:
         # --- Auto mode (no button): detects the start / end of a gesture from the hand speed
         self.auto = False
         self.auto_label = None           # true letter for testing (from the page), None = no test
+        self.practice_label = None       # practice mode for a dynamic letter (sidebar); results are NOT logged
+        self.practice_tries = 0          # in practice: how many clear attempts, and how many were correct
+        self.practice_ok = 0
         self.v_hi = 0.80                 # above this speed (palm length / second) => movement starts
         self.v_lo = 0.35                 # below this => the hand has stopped (always lower than v_hi)
         self.min_dur = 0.9               # minimum movement time (seconds), otherwise ignored
@@ -368,6 +372,22 @@ class DynamicRecorder:
         self._a_energy = 0.0
         self._a_lost = None
         self._cool_until = 0.0
+
+    def set_practice(self, label):
+        """Sidebar Practice: a dynamic letter name or None. Counters restart when the letter changes."""
+        with self.lock:
+            if label != self.practice_label:
+                self.practice_label = label
+                self.practice_tries = self.practice_ok = 0
+                self.result = None
+
+    def _count_practice(self, r):
+        """A clear attempt (hand found, enough movement) counts as a try; it is correct if the letter and confidence fit."""
+        if self.practice_label is None or not r.get("ok") or r.get("ignored"):
+            return
+        self.practice_tries += 1
+        if r["pred"] == self.practice_label and r["conf"] >= self.min_conf:
+            self.practice_ok += 1
 
     def start(self, true_label=None):
         """When the button is pressed (Streamlit thread)."""
@@ -459,6 +479,7 @@ class DynamicRecorder:
         with self.lock:
             self.result = result
             self._result_t = now
+            self._count_practice(result)
         try:
             self._log(result)
         except OSError:
@@ -575,6 +596,7 @@ class DynamicRecorder:
         with self.lock:
             self.result = result
             self._result_t = now
+            self._count_practice(result)
         try:
             self._log_auto(result, dur, energy)
         except OSError:
@@ -582,6 +604,8 @@ class DynamicRecorder:
         return result if why == "ok" else None
 
     def _log_auto(self, r, dur, energy):
+        if self.practice_label is not None:
+            return                                           # practice attempts do not belong in the test log
         AUTO_LOG.parent.mkdir(parents=True, exist_ok=True)
         new = not AUTO_LOG.exists()
         second = r["top2"][1] if len(r["top2"]) > 1 else ("", float("nan"))
@@ -607,6 +631,8 @@ class DynamicRecorder:
         return r
 
     def _log(self, r):
+        if self.practice_label is not None:
+            return                                           # practice attempts do not belong in the test log
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         new = not self.log_path.exists()
         second = r["top2"][1] if len(r["top2"]) > 1 else ("", float("nan"))
@@ -699,8 +725,69 @@ def _bar(img, frac, color, h_bar=8, margin=12):
         cv2.rectangle(img, (x0, y0), (x0 + int((x1 - x0) * min(frac, 1.0)), y1), color, -1)
 
 
+def draw_coach_overlay(img, cs):
+    """Practice mode text on the video: target + match at the top, the first tip (or 'Correct') at the bottom."""
+    h = img.shape[0]
+    target = cs["target"]
+    if not cs["has_hand"]:
+        _chip(img, f"Practice: {target}", 10, 46, C_ORANGE, scale=0.9, thick=2)
+        _chip(img, "Show your hand", 10, h - 62, C_GRAY, scale=0.7, thick=2)
+        return
+    color = C_GREEN if cs["accepted"] else C_ORANGE
+    _chip(img, f"Practice: {target}  match {cs['match'] * 100:.0f}%", 10, 46, color, scale=0.9, thick=2)
+    if cs["accepted"] and cs["polish"] and cs["tips"]:
+        _chip(img, "Good! Even better: " + cs["tips"][0].lower(), 10, h - 62, C_ORANGE, scale=0.6, thick=2)
+    elif cs["accepted"]:
+        _chip(img, "Correct! Hold it" if not cs["done"] else "Done! Pick the next letter", 10, h - 62, C_GREEN,
+              scale=0.7, thick=2)
+    elif cs["tips"]:
+        _chip(img, cs["tips"][0], 10, h - 62, C_RED, scale=0.7, thick=2)
+    else:
+        _chip(img, "Not yet: compare your hand with the photo", 10, h - 62, C_ORANGE, scale=0.7, thick=2)
+    _bar(img, cs["good_frac"], C_GREEN)
+
+
 # --------------------------------------------------------------------------- webrtc callback
-def make_callback(state, tracker, predictor, recorder):
+def group_members(name):
+    """Tuey -> ("Tuey", "Daal"); any other letter -> (name,). The model sees a group as one unit."""
+    g = MEMBER_OF.get(name)
+    return GROUPS[g] if g else (name,)
+
+
+def dynamic_verdict(r, target, min_conf):
+    """Practice a dynamic letter: what to tell the learner about the last attempt -> (text, kind), kind = good/warn/bad/info."""
+    if r is None:
+        return None, "info"
+    if r.get("ignored") in ("short", "weak"):
+        return ("Movement too short, do the whole gesture" if r["ignored"] == "short"
+                else "Movement too small, make it bigger"), "info"
+    if not r.get("ok"):
+        return "Hand not seen enough, try again", "warn"
+    if r["pred"] == target:
+        if r["conf"] >= min_conf:
+            return f"Correct! {target} {r['conf'] * 100:.0f}%", "good"
+        return f"Right letter but not clear ({r['conf'] * 100:.0f}%): do it slower and bigger", "warn"
+    return f"That looked like {r['pred']} ({r['conf'] * 100:.0f}%), try again", "bad"
+
+
+def draw_coach_fingers(bgr, landmarks, cs, z_tip):
+    """Practice mode: each finger is coloured green (fine), orange (a bit off) or red (the one to fix)."""
+    if not cs["finger_z"]:
+        return
+    h, w = bgr.shape[:2]
+    pts = [(int(landmarks[3 * i] * w), int(landmarks[3 * i + 1] * h)) for i in range(21)]
+    for f, chain in enumerate(COACH_CHAINS):
+        if f == cs["worst"] and (not cs["accepted"] or cs["polish"]):
+            color, thick = (C_ORANGE, 6) if cs["accepted"] else (C_RED, 6)
+        elif cs["finger_z"][f] > z_tip:
+            color, thick = C_ORANGE, 4
+        else:
+            color, thick = C_GREEN, 4
+        for a, b in zip(chain[:-1], chain[1:]):
+            cv2.line(bgr, pts[a], pts[b], color, thick, cv2.LINE_AA)
+
+
+def make_callback(state, tracker, predictor, recorder, coach=None):
     import av
 
     fps = {"t": time.time()}
@@ -710,23 +797,34 @@ def make_callback(state, tracker, predictor, recorder):
         now = time.time()
         h, w = img.shape[:2]
 
+        practicing = coach is not None and coach.target is not None
+        dyn_target = recorder.practice_label           # practice of a dynamic letter (movement), or None
+        dyn_practice = dyn_target is not None
         lm = tracker.detect(img)                       # on the original (not mirrored) frame, as in training
-        state.paused = recorder.blocks_static(now)     # static adds nothing during a (confirmed) recording
+        # static adds nothing during a (confirmed) recording, and nothing in practice mode
+        state.paused = recorder.blocks_static(now) or practicing or dyn_practice
         probs = predictor.proba(lm) if lm is not None else None
         state.update(probs, now)
+        if practicing:
+            coach.update(lm, probs, now, group_of=group_members)
 
-        res = recorder.step(lm, w, h, now)
-        if res is not None:
-            accepted = res["ok"] and res["conf"] >= recorder.min_conf
-            state.after_dynamic(res["pred"] if accepted else None)
+        # practice mode: Auto mode is not used (a manual recording that is already running still finishes)
+        if not practicing or recorder.phase in ("countdown", "recording"):
+            res = recorder.step(lm, w, h, now)
+            if res is not None:
+                accepted = res["ok"] and res["conf"] >= recorder.min_conf
+                state.after_dynamic(None if dyn_practice else (res["pred"] if accepted else None))   # practice: no letter added
 
         img = cv2.flip(img, 1)                         # mirror view, for display only
+        cs = coach.snapshot() if practicing else None
         if lm is not None:
             lm_view = [1.0 - v if i % 3 == 0 else v for i, v in enumerate(lm)]   # flip x
             if state.show_points:
                 draw_hand(img, lm_view)
-            if state.show_dist:
+            if state.show_dist and not practicing:
                 draw_measurements(img, lm_view)
+            if practicing:
+                draw_coach_fingers(img, lm_view, cs, COACH_Z_TIP)
 
         # --- top: FPS and hand status
         state.fps = 0.9 * state.fps + 0.1 * (1.0 / max(now - fps["t"], 1e-6))
@@ -739,7 +837,9 @@ def make_callback(state, tracker, predictor, recorder):
             _chip(img, f"AUTO  v {recorder.speed:.1f}", x + 6, 10, C_ORANGE if fast else C_GRAY, scale=0.55)
 
         phase, val = recorder.status(now)
-        if phase == "countdown":
+        if practicing and phase not in ("countdown", "recording"):
+            draw_coach_overlay(img, cs)
+        elif phase == "countdown":
             _center_text(img, str(max(1, math.ceil(val))), 5.0, (0, 255, 255), 10)
             tag = f"  ->  {recorder.true_label}" if recorder.true_label else ""
             _chip(img, "Get ready" + tag, 10, 46, (0, 255, 255), scale=0.9, thick=2)
@@ -754,7 +854,11 @@ def make_callback(state, tracker, predictor, recorder):
                 _bar(img, min(val / recorder.max_seg, 1.0), C_RED)
         elif phase == "result":
             r = recorder.result
-            if r.get("ignored") in ("short", "weak"):
+            if dyn_practice:
+                text, kind = dynamic_verdict(r, dyn_target, recorder.min_conf)
+                _chip(img, text, 10, 46, {"good": C_GREEN, "warn": C_ORANGE, "bad": C_RED, "info": C_GRAY}[kind],
+                      scale=0.7, thick=2)
+            elif r.get("ignored") in ("short", "weak"):
                 _chip(img, "ignored: movement too short", 10, 46, C_GRAY, scale=0.8, thick=2)
             elif r["ok"]:
                 ok = r["conf"] >= recorder.min_conf
@@ -762,6 +866,9 @@ def make_callback(state, tracker, predictor, recorder):
                 _chip(img, text, 10, 46, C_GREEN if ok else C_ORANGE, scale=0.9, thick=2)
             else:
                 _chip(img, "Few hand frames, try again", 10, 46, C_ORANGE, scale=0.9, thick=2)
+        elif dyn_practice:
+            _chip(img, f"Practice: {dyn_target}", 10, 46, C_ORANGE, scale=0.9, thick=2)
+            _chip(img, "Press Record (or Auto mode), then do the gesture", 10, h - 62, C_GRAY, scale=0.7, thick=2)
         else:
             with state.lock:
                 label, conf, hold = state.top_label, state.top_conf, state.hold
@@ -778,4 +885,4 @@ def make_callback(state, tracker, predictor, recorder):
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-    return callback
+    return callback
